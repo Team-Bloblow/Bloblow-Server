@@ -4,8 +4,9 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 
-const indexRouter = require("./routes/index");
-const usersRouter = require("./routes/users");
+const indexRouter = require("./routes/indexRoute");
+const groupRouter = require("./routes/groupRoute");
+const keywordRouter = require("./routes/keywordRoute");
 
 const mongoose = require("mongoose");
 
@@ -23,7 +24,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/group", groupRouter);
+app.use("/keyword", keywordRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
@@ -53,5 +55,9 @@ async function run() {
   }
 }
 run().catch("error!");
+
+app.listen(3000, () => {
+  console.log("🚀Server Run!");
+});
 
 module.exports = app;
