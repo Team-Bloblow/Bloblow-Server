@@ -1,6 +1,6 @@
 const puppeteer = require("puppeteer");
 const { isToday } = require("../utils/date");
-const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../utils/constants");
+const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../config/constants");
 
 require("dotenv").config();
 
