@@ -1,13 +1,14 @@
 const puppeteer = require("puppeteer");
 const { isToday } = require("../utils/date");
 const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../config/constants");
+const postController = require("../controllers/postController");
 
 require("dotenv").config();
 
 const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
 const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 
-const getCrawlingData = async (post) => {
+const getPostCrawlingData = async (post) => {
   const browser = await puppeteer.launch({
     headless: true,
   });
@@ -26,13 +27,13 @@ const getCrawlingData = async (post) => {
   await page.waitForSelector("body");
 
   const content = await page.evaluate(() =>
-    JSON.stringify(document.querySelector(".se-main-container").innerText)
+    JSON.stringify(document.querySelector(".se-main-container").textContent)
   );
-  const commentCount = await page.evaluate(() =>
-    parseInt(document.querySelector("._commentCount").innerText.trim())
+  const commentCount = await page.evaluate(
+    () => parseInt(document.querySelector("._commentCount").innerText.trim()) || 0
   );
-  const likeCount = await page.evaluate(() =>
-    JSON.stringify(document.querySelector(".u_cnt._count").innerHTML)
+  const likeCount = await page.evaluate(
+    () => parseInt(document.querySelector(".u_cnt._count").innerText.trim()) || 0
   );
 
   return {
@@ -45,11 +46,10 @@ const getCrawlingData = async (post) => {
   };
 };
 
-const getKeywordPostList = async (keyword) => {
+const getKeywordPostList = async (keyword, keywordId) => {
   let startIndex = 1;
-  let stopMorePostList = false;
 
-  while (!stopMorePostList) {
+  while (true) {
     const apiURL = `https://openapi.naver.com/v1/search/blog?query="${encodeURI(keyword)}"&sort=date&start=${startIndex}&display=${POST_COUNT}`;
     const response = await fetch(apiURL, {
       method: "get",
@@ -60,22 +60,28 @@ const getKeywordPostList = async (keyword) => {
     });
 
     const data = await response.json();
-    const postList = data.items.filter(
+    const dataList = data.items.filter(
       (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
     );
 
-    const resultList = await Promise.allSettled(
-      postList.map(async (post) => {
-        const result = await getCrawlingData(post);
+    const postList = await Promise.allSettled(
+      dataList.map(async (data) => {
+        const result = await getPostCrawlingData(data);
         return result;
       })
     );
+
+    for await (const post of postList) {
+      if (post.status === "fulfilled") {
+        postController.upsert({ keywordId, ...post.value });
+      }
+    }
 
     const postDateOfLastPost = data.items[data.items?.length - 1].postdate;
     if (isToday(postDateOfLastPost)) {
       startIndex += POST_COUNT;
     } else {
-      stopMorePostList = true;
+      break;
     }
   }
 };
