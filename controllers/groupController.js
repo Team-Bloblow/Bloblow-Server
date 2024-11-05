@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const groupModel = require("../models/groupModel");
+const keywordModel = require("../models/keywordModel");
 
 const create = async (req, res) => {
   const { name, ownerId, keywordList, createdAt } = req.body;
@@ -15,10 +16,14 @@ const create = async (req, res) => {
       keywordList: keywordList,
     });
     const { _id } = documentGroupCreated;
+    const documentKeywordCreated = await keywordModel.create({
+      keyword: keywordList[0],
+      ownerId: ownerId,
+    });
 
-    res.json({ id: _id.toString(), keywordList: keywordList });
+    res.status(201).json({ id: _id.toString(), keywordList: keywordList });
   } catch (error) {
-    console.error("[Error: groupCreate]", error);
+    console.error("[Error: groupCreate] ", error);
     res.status(500).send(error);
   }
 };
