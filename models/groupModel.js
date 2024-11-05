@@ -2,10 +2,6 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const groupSchema = new Schema({
-  id: {
-    type: Schema.Types.ObjectId,
-    required: true,
-  },
   name: {
     type: String,
     required: true,
@@ -15,19 +11,12 @@ const groupSchema = new Schema({
     required: true,
   },
   keywordList: {
-    type: String,
+    type: Array,
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-    required: false,
-  },
+},
+{
+  timestamps: true
 });
 
 module.exports = mongoose.model("group", groupSchema);
