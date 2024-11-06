@@ -16,7 +16,7 @@ const keywordSchema = new Schema(
     },
     excludedKeyword: {
       type: Array,
-    }
+    },
   },
   {
     timestamps: true,
