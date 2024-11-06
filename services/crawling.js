@@ -24,7 +24,7 @@ const getPostCrawlingData = async (post) => {
   const iframeURL = await page.evaluate(() => document.querySelector("iframe").src);
 
   await page.goto(iframeURL);
-  await page.waitForSelector("body");
+  await page.waitForNetworkIdle();
 
   const content = await page.evaluate(() =>
     JSON.stringify(document.querySelector(".se-main-container").textContent)
