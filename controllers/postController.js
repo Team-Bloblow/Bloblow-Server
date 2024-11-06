@@ -1,15 +1,15 @@
 const postModel = require("../models/postModel");
-const { isValidatedString, isValidatedNumber } = require("../utils/validation");
+const { isValidString, isValidNumber } = require("../utils/validation");
 
 const upsert = async (post) => {
   if (
-    !isValidatedString(post.keywordId) ||
-    !isValidatedString(post.title) ||
-    !isValidatedString(post.content) ||
-    !isValidatedString(post.description) ||
-    !isValidatedString(post.link) ||
-    !isValidatedNumber(post.commentCount) ||
-    !isValidatedNumber(post.likeCount)
+    !isValidString(post.keywordId) ||
+    !isValidString(post.title) ||
+    !isValidString(post.content) ||
+    !isValidString(post.description) ||
+    !isValidString(post.link) ||
+    !isValidNumber(post.commentCount) ||
+    !isValidNumber(post.likeCount)
   ) {
     return;
   }

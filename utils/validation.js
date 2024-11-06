@@ -1,10 +1,9 @@
-const isValidatedString = (string) => {
+const isValidString = (string) => {
   if (
     string === null ||
     string === undefined ||
-    typeof string === "undefined" ||
-    Array.isArray(string) ||
-    typeof string === "object"
+    string.trim() === "" ||
+    typeof string !== "string"
   ) {
     return false;
   }
@@ -12,18 +11,12 @@ const isValidatedString = (string) => {
   return true;
 };
 
-const isValidatedNumber = (number) => {
-  if (
-    number === null ||
-    number === undefined ||
-    typeof number === "undefined" ||
-    isNaN(number) ||
-    typeof number === "object"
-  ) {
+const isValidNumber = (number) => {
+  if (number === null || number === undefined || typeof number === "number") {
     return false;
   }
 
   return true;
 };
 
-module.exports = { isValidatedString, isValidatedNumber };
+module.exports = { isValidString, isValidNumber };
