@@ -28,7 +28,7 @@ const create = async (req, res) => {
       });
       await keywordModel.create({
         keyword,
-        ownerId: ownerId,
+        ownerId,
       });
       res.status(201).json(resultGroupCreated);
     } else {
