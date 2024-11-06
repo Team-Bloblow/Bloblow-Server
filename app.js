@@ -24,7 +24,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
-app.use("/group", groupRouter);
 app.use("/keyword", keywordRouter);
 
 app.use(function (req, res, next) {
