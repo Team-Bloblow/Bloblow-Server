@@ -5,7 +5,6 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 
 const indexRouter = require("./routes/indexRoute");
-const groupRouter = require("./routes/groupRoute");
 const keywordRouter = require("./routes/keywordRoute");
 
 const mongoose = require("mongoose");
