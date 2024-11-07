@@ -80,7 +80,7 @@ const getKeywordPostList = async (keyword, keywordId) => {
     });
 
     const data = await response.json();
-    if (!data?.items) {
+    if (!data?.items || data.items.length === 0) {
       break;
     }
 
