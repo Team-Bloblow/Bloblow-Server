@@ -3,6 +3,7 @@ const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
+const cors = require("cors");
 
 const indexRouter = require("./routes/indexRoute");
 const keywordRouter = require("./routes/keywordRoute");
@@ -16,6 +17,14 @@ require("dotenv").config();
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
+const CLIENT_SERVER_URL = process.env.CLIENT_SERVER_URL;
+
+app.use(
+  cors({
+    origin: CLIENT_SERVER_URL,
+    credentials: true,
+  })
+);
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
