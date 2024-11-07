@@ -11,7 +11,7 @@ const groupSchema = new Schema(
       type: String,
       required: true,
     },
-    keywordList: {
+    keywordIdList: {
       type: Array,
       required: true,
     },
