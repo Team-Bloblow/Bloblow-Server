@@ -1,24 +1,24 @@
 const keywordModel = require("../models/keywordModel");
 const groupModel = require("../models/groupModel");
-
-const isValid = (data) => {
-  return data !== null && data !== undefined;
-};
+const { isValidString, isBlank } = require("../utils/validation");
+const { getKeywordPostList } = require("../services/crawling");
 
 const create = async (req, res) => {
-  if (!isValid(req.body.groupId)) {
+  if (!isValidString(req.body.groupId)) {
     return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
   }
-  if (!isValid(req.body.ownerId)) {
+  if (!isValidString(req.body.ownerId)) {
     return res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
   }
-  if (!isValid(req.body.keyword)) {
+  if (!isValidString(req.body.keyword)) {
     return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
   }
 
-  const isNotExistedGroupId = (await groupModel.find({ _id: req.body.groupId })).length === 0;
-  if (isNotExistedGroupId) {
-    return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+  if (!isBlank(req.body.groupId)) {
+    const isNotExistedGroupId = (await groupModel.find({ _id: req.body.groupId })).length === 0;
+    if (isNotExistedGroupId) {
+      return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+    }
   }
 
   const isDuplicatedKeyword =
@@ -33,22 +33,25 @@ const create = async (req, res) => {
   try {
     const keywordCreated = await keywordModel.create({ keyword, ownerId });
     const { _id: keywordIdCreated } = keywordCreated;
+    let groupResult;
 
-    if (groupId === "") {
-      const groupCreated = await groupModel.create({
+    if (isBlank(groupId)) {
+      groupResult = await groupModel.create({
         name: groupName,
         ownerId,
         keywordIdList: [keywordIdCreated],
       });
-      return res.status(201).json(groupCreated);
-    } else if (!isNotExistedGroupId) {
-      const groupUpdated = await groupModel.findByIdAndUpdate(
+    } else {
+      groupResult = await groupModel.findByIdAndUpdate(
         { _id: groupId },
         { $push: { keywordIdList: keywordIdCreated } },
         { new: true }
       );
-      return res.status(201).json(groupUpdated);
     }
+
+    await getKeywordPostList(keyword, keywordIdCreated);
+
+    return res.status(201).json(groupResult);
   } catch (error) {
     return res
       .status(500)

@@ -3,11 +3,10 @@ const { isValidString, isValidNumber } = require("../utils/validation");
 
 const upsert = async (post) => {
   if (
-    !isValidString(post.keywordId) ||
     !isValidString(post.title) ||
-    !isValidString(post.content) ||
-    !isValidString(post.description) ||
     !isValidString(post.link) ||
+    !isValidString(post.description) ||
+    !isValidString(post.content) ||
     !isValidNumber(post.commentCount) ||
     !isValidNumber(post.likeCount)
   ) {
@@ -15,9 +14,11 @@ const upsert = async (post) => {
   }
 
   await postModel.findOneAndUpdate(
-    { link: post.link },
     {
       keywordId: post.keywordId,
+      link: post.link,
+    },
+    {
       title: post.title,
       description: post.description,
       content: post.content,
