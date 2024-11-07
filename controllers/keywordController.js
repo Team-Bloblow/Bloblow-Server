@@ -22,8 +22,8 @@ const create = async (req, res) => {
   }
 
   const isDuplicatedKeyword =
-    (await keywordModel.find({ groupId: req.body.groupId, keyword: req.body.keyword })).length ===
-    0;
+    (await keywordModel.find({ groupId: req.body.groupId, keywordList: req.body.keyword }))
+      .length !== 0;
   if (isDuplicatedKeyword) {
     return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
   }
@@ -31,26 +31,28 @@ const create = async (req, res) => {
   const { groupId, groupName, keyword, ownerId } = req.body;
 
   try {
-    const resultKeywordCreated = await keywordModel.create({ keyword, ownerId });
-    const { _id: keywordIdCreated } = resultKeywordCreated;
+    const keywordCreated = await keywordModel.create({ keyword, ownerId });
+    const { _id: keywordIdCreated } = keywordCreated;
 
     if (groupId === "") {
-      const resultGroupCreated = await groupModel.create({
+      const groupCreated = await groupModel.create({
         name: groupName,
         ownerId,
         keywordIdList: [keywordIdCreated],
       });
-      return res.status(201).json(resultGroupCreated);
+      return res.status(201).json(groupCreated);
     } else if (!isNotExistedGroupId) {
-      const queryGroupUpdated = await groupModel.findByIdAndUpdate(
+      const groupUpdated = await groupModel.findByIdAndUpdate(
         { _id: groupId },
         { $push: { keywordIdList: keywordIdCreated } },
         { new: true }
       );
-      return res.status(201).json(queryGroupUpdated);
+      return res.status(201).json(groupUpdated);
     }
   } catch (error) {
-    return res.status(500).send({ message: "[ServerError] Error occured in 'keywordController.create'" });
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'keywordController.create'" });
   }
 };
 
