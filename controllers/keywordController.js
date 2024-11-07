@@ -7,23 +7,26 @@ const isValid = (data) => {
 
 const create = async (req, res) => {
   if (!isValid(req.body.groupId)) {
-    res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+    return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
   }
   if (!isValid(req.body.ownerId)) {
-    res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
+    return res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
   }
   if (!isValid(req.body.keyword)) {
-    res.status(400).send({ message: "[InvalidKeyword] Error occured" });
+    return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
+  }
+
+  const isNotExistedGroupId = (await groupModel.find({ _id: req.body.groupId })).length === 0;
+  if (isNotExistedGroupId) {
+    return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
   }
 
   const isDuplicatedKeyword =
-    keywordModel.find({ groupId: req.body.groupId, keyword: req.body.keyword }) === null;
-
+    (await keywordModel.find({ groupId: req.body.groupId, keyword: req.body.keyword })).length ===
+    0;
   if (isDuplicatedKeyword) {
-    res.status(400).send({ message: "[ExistedKeyword] Error occured" });
+    return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
   }
-
-  const isValidGroupId = groupModel.find({ groupId: req.body.groupId }) !== null;
 
   const { groupId, groupName, keyword, ownerId } = req.body;
 
@@ -37,17 +40,17 @@ const create = async (req, res) => {
         ownerId,
         keywordIdList: [keywordIdCreated],
       });
-      res.status(201).json(resultGroupCreated);
-    } else if (isValidGroupId) {
+      return res.status(201).json(resultGroupCreated);
+    } else if (!isNotExistedGroupId) {
       const queryGroupUpdated = await groupModel.findByIdAndUpdate(
         { _id: groupId },
         { $push: { keywordIdList: keywordIdCreated } },
         { new: true }
       );
-      res.status(201).json(queryGroupUpdated);
+      return res.status(201).json(queryGroupUpdated);
     }
   } catch (error) {
-    res.status(500).send({ message: "[ServerError] Error occured in '/keywordCreate'" });
+    return res.status(500).send({ message: "[ServerError] Error occured in 'keywordController.create'" });
   }
 };
 
