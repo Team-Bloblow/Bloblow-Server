@@ -46,6 +46,26 @@ const getPostCrawlingData = async (post) => {
   };
 };
 
+const promiseAllSettled = async (list) => {
+  const mappedPromises = list.map((data) => {
+    return Promise.resolve(getPostCrawlingData(data))
+      .then((value) => {
+        return {
+          status: "fulfilled",
+          value,
+        };
+      })
+      .catch((reason) => {
+        return {
+          status: "rejected",
+          reason,
+        };
+      });
+  });
+
+  return Promise.all(mappedPromises);
+};
+
 const getKeywordPostList = async (keyword, keywordId) => {
   let startIndex = 1;
 
@@ -60,16 +80,22 @@ const getKeywordPostList = async (keyword, keywordId) => {
     });
 
     const data = await response.json();
+    if (!data?.items) {
+      break;
+    }
+
     const dataList = data.items.filter(
       (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
     );
 
-    const postList = await Promise.allSettled(
-      dataList.map(async (data) => {
-        const result = await getPostCrawlingData(data);
-        return result;
-      })
-    );
+    const postList = Promise.allSettled
+      ? await Promise.allSettled(
+          dataList.map(async (data) => {
+            const result = await getPostCrawlingData(data);
+            return result;
+          })
+        )
+      : await promiseAllSettled(dataList);
 
     for await (const post of postList) {
       if (post.status === "fulfilled") {
