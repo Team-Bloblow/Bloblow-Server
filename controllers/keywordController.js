@@ -6,15 +6,18 @@ const isValid = (data) => {
 };
 
 const create = async (req, res) => {
-  if (!isValid(req.body.groupName) || !isValid(req.body.keyword) || !isValid(req.body.ownerId)) {
-    res.status(400).send({ message: "[Error] Empty content in '/keywordCreate'" });
+  if (!isValid(req.body.ownerId)) {
+    res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
+  }
+  if (!isValid(req.body.keyword)) {
+    res.status(400).send({ message: "[InvalidKeyword] Error occured" });
   }
 
   const isDuplicatedKeyword =
     keywordModel.find({ groupId: req.body.groupId, keyword: req.body.keyword }) === null;
 
   if (isDuplicatedKeyword) {
-    res.status(400).send({ message: "[Error] Duplicated content in '/keywordCreate'" });
+    res.status(400).send({ message: "[ExistedKeyword] Error occured" });
   }
 
   const isValidGroupId = groupModel.find({ groupId: req.body.groupId }) !== null;
@@ -41,7 +44,7 @@ const create = async (req, res) => {
       res.status(201).json(queryGroupUpdated);
     }
   } catch (error) {
-    res.status(500).send({ message: "[Server Error] Error occured in '/keywordCreate'" });
+    res.status(500).send({ message: "[ServerError] Error occured in '/keywordCreate'" });
   }
 };
 
