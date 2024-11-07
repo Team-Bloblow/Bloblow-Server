@@ -6,6 +6,9 @@ const isValid = (data) => {
 };
 
 const create = async (req, res) => {
+  if (!isValid(req.body.groupId)) {
+    res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+  }
   if (!isValid(req.body.ownerId)) {
     res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
   }
@@ -28,7 +31,7 @@ const create = async (req, res) => {
     const resultKeywordCreated = await keywordModel.create({ keyword, ownerId });
     const { _id: keywordIdCreated } = resultKeywordCreated;
 
-    if (groupId === null) {
+    if (groupId === "") {
       const resultGroupCreated = await groupModel.create({
         name: groupName,
         ownerId,
