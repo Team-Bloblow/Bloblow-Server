@@ -11,10 +11,12 @@ const groupSchema = new Schema(
       type: String,
       required: true,
     },
-    keywordIdList: {
-      type: Array,
-      required: true,
-    },
+    keywordIdList: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "keyword",
+      },
+    ],
   },
   {
     timestamps: true,

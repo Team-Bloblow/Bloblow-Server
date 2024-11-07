@@ -1,10 +1,5 @@
 const isValidString = (string) => {
-  if (
-    string === null ||
-    string === undefined ||
-    string.trim() === "" ||
-    typeof string !== "string"
-  ) {
+  if (string === null || string === undefined || typeof string !== "string") {
     return false;
   }
 
@@ -12,11 +7,19 @@ const isValidString = (string) => {
 };
 
 const isValidNumber = (number) => {
-  if (number === null || number === undefined || typeof number === "number") {
+  if (number === null || number === undefined || typeof number !== "number") {
     return false;
   }
 
   return true;
 };
 
-module.exports = { isValidString, isValidNumber };
+const isBlank = (string) => {
+  if (string === "" || string.trim() === "") {
+    return true;
+  }
+
+  return false;
+};
+
+module.exports = { isValidString, isValidNumber, isBlank };
