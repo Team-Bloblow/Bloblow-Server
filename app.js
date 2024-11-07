@@ -56,8 +56,4 @@ const connectDB = async () => {
 };
 connectDB();
 
-app.listen(3000, () => {
-  console.log("🚀Server Run!");
-});
-
 module.exports = app;
