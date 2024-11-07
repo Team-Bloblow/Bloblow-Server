@@ -24,33 +24,38 @@ const create = async (req, res) => {
   const isDuplicatedKeyword =
     (await keywordModel.find({ groupId: req.body.groupId, keywordList: req.body.keyword }))
       .length !== 0;
+
   if (isDuplicatedKeyword) {
     return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
   }
 
-  const { groupId, groupName, keyword, ownerId } = req.body;
+  const { groupName, keyword, ownerId } = req.body;
+  let groupId = req.body.groupId;
 
   try {
     const keywordCreated = await keywordModel.create({ keyword, ownerId });
     const { _id: keywordIdCreated } = keywordCreated;
-    let groupResult;
 
     if (isBlank(groupId)) {
-      groupResult = await groupModel.create({
+      const { _id } = await groupModel.create({
         name: groupName,
         ownerId,
         keywordIdList: [keywordIdCreated],
       });
+
+      groupId = _id;
     } else {
-      groupResult = await groupModel.findByIdAndUpdate(
+      await groupModel.findByIdAndUpdate(
         { _id: groupId },
-        { $push: { keywordIdList: keywordIdCreated } },
-        { new: true }
+        { $push: { keywordIdList: keywordIdCreated } }
       );
     }
 
     await getKeywordPostList(keyword, keywordIdCreated);
 
+    const groupResult = await groupModel
+      .findOne({ _id: groupId })
+      .populate("keywordIdList", "keyword");
     return res.status(201).json(groupResult);
   } catch (error) {
     return res
