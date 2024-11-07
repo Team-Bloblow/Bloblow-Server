@@ -1,54 +1,62 @@
 const keywordModel = require("../models/keywordModel");
 const groupModel = require("../models/groupModel");
-
-const isValid = (data) => {
-  return data !== null && data !== undefined;
-};
+const { isValidString, isBlank } = require("../utils/validation");
+const { getKeywordPostList } = require("../services/crawling");
 
 const create = async (req, res) => {
-  if (!isValid(req.body.groupId)) {
+  if (!isValidString(req.body.groupId)) {
     return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
   }
-  if (!isValid(req.body.ownerId)) {
+  if (!isValidString(req.body.ownerId)) {
     return res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
   }
-  if (!isValid(req.body.keyword)) {
+  if (!isValidString(req.body.keyword)) {
     return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
   }
 
-  const isNotExistedGroupId = (await groupModel.find({ _id: req.body.groupId })).length === 0;
-  if (isNotExistedGroupId) {
-    return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+  if (!isBlank(req.body.groupId)) {
+    const isNotExistedGroupId = (await groupModel.find({ _id: req.body.groupId })).length === 0;
+    if (isNotExistedGroupId) {
+      return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+    }
   }
 
   const isDuplicatedKeyword =
     (await keywordModel.find({ groupId: req.body.groupId, keywordList: req.body.keyword }))
       .length !== 0;
+
   if (isDuplicatedKeyword) {
     return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
   }
 
-  const { groupId, groupName, keyword, ownerId } = req.body;
+  const { groupName, keyword, ownerId } = req.body;
+  let groupId = req.body.groupId;
 
   try {
     const keywordCreated = await keywordModel.create({ keyword, ownerId });
     const { _id: keywordIdCreated } = keywordCreated;
 
-    if (groupId === "") {
-      const groupCreated = await groupModel.create({
+    if (isBlank(groupId)) {
+      const { _id } = await groupModel.create({
         name: groupName,
         ownerId,
         keywordIdList: [keywordIdCreated],
       });
-      return res.status(201).json(groupCreated);
-    } else if (!isNotExistedGroupId) {
-      const groupUpdated = await groupModel.findByIdAndUpdate(
+
+      groupId = _id;
+    } else {
+      await groupModel.findByIdAndUpdate(
         { _id: groupId },
-        { $push: { keywordIdList: keywordIdCreated } },
-        { new: true }
+        { $push: { keywordIdList: keywordIdCreated } }
       );
-      return res.status(201).json(groupUpdated);
     }
+
+    await getKeywordPostList(keyword, keywordIdCreated);
+
+    const groupResult = await groupModel
+      .findOne({ _id: groupId })
+      .populate("keywordIdList", "keyword");
+    return res.status(201).json(groupResult);
   } catch (error) {
     return res
       .status(500)

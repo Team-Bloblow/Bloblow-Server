@@ -33,11 +33,9 @@ const postSchema = new Schema(
     },
     score: {
       type: Number,
-      required: false,
     },
     isAd: {
       type: Boolean,
-      required: false,
     },
   },
   {

@@ -1,28 +1,29 @@
 const postModel = require("../models/postModel");
 const { isValidString, isValidNumber } = require("../utils/validation");
 
-const upsert = async (post) => {
+const upsert = async (req) => {
   if (
-    !isValidString(post.keywordId) ||
-    !isValidString(post.title) ||
-    !isValidString(post.content) ||
-    !isValidString(post.description) ||
-    !isValidString(post.link) ||
-    !isValidNumber(post.commentCount) ||
-    !isValidNumber(post.likeCount)
+    !isValidString(req.title) ||
+    !isValidString(req.link) ||
+    !isValidString(req.description) ||
+    !isValidString(req.content) ||
+    !isValidNumber(req.commentCount) ||
+    !isValidNumber(req.likeCount)
   ) {
     return;
   }
 
   await postModel.findOneAndUpdate(
-    { link: post.link },
     {
-      keywordId: post.keywordId,
-      title: post.title,
-      description: post.description,
-      content: post.content,
-      commentCount: post.commentCount,
-      likeCount: post.likeCount,
+      keywordId: req.keywordId,
+      link: req.link,
+    },
+    {
+      title: req.title,
+      description: req.description,
+      content: req.content,
+      commentCount: req.commentCount,
+      likeCount: req.likeCount,
     },
     { upsert: true }
   );
