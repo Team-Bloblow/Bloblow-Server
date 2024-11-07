@@ -4,8 +4,8 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 
-const indexRouter = require("./routes/index");
-const usersRouter = require("./routes/users");
+const indexRouter = require("./routes/indexRoute");
+const keywordRouter = require("./routes/keywordRoute");
 
 const mongoose = require("mongoose");
 
@@ -23,7 +23,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/keyword", keywordRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
@@ -42,16 +42,22 @@ const password = encodeURIComponent(process.env.DB_PASSWORD);
 
 const uri = `mongodb+srv://${username}:${password}@bloblow.naudn.mongodb.net/?retryWrites=true&w=majority&appName=bloblow`;
 
-const clientOptions = { serverApi: { version: "1", strict: true, deprecationErrors: true } };
+const clientOptions = {
+  serverApi: { version: "1", strict: true, deprecationErrors: true },
+  serverSelectionTimeoutMS: 5000,
+};
 
-async function run() {
+const connectDB = async () => {
   try {
     await mongoose.connect(uri, clientOptions);
-    await mongoose.connection.db.admin().command({ ping: 1 });
-  } finally {
-    await mongoose.disconnect();
+  } catch (err) {
+    console.error(err);
   }
-}
-run().catch("error!");
+};
+connectDB();
+
+app.listen(3000, () => {
+  console.log("🚀Server Run!");
+});
 
 module.exports = app;
