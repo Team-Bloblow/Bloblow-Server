@@ -6,6 +6,7 @@ const logger = require("morgan");
 const cors = require("cors");
 
 const indexRouter = require("./routes/indexRoute");
+const userRouter = require("./routes/userRoute");
 const keywordRouter = require("./routes/keywordRoute");
 
 const mongoose = require("mongoose");
@@ -32,6 +33,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
+app.use("/user", userRouter);
 app.use("/keyword", keywordRouter);
 
 app.use(function (req, res, next) {
