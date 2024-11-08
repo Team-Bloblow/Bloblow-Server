@@ -65,22 +65,22 @@ const find = async (req, res) => {
   if (isBlank(cursorId)) {
     items = await postModel
       .find({ keywordId: keywordId })
-      .find({ content: { $regex: `.*${includedKeyword}.*` } })
+      .find({ content: { $regex: includedKeyword } })
       .sort({ _id: -1 })
       .limit(limit);
   } else {
     items = await postModel
       .find({ keywordId: keywordId })
-      .find({ content: { $regex: `.*${includedKeyword}.*` } })
+      .find({ content: { $regex: includedKeyword } })
       .find({ _id: { $lt: cursorId } })
       .sort({ _id: -1 })
       .limit(limit);
   }
 
-  const nextCursorId = items[items.length - 1]._id;
+  const nextCursorId = items[items.length - 1]?._id;
   const nextPost = await postModel
     .find({ keywordId: keywordId })
-    .find({ content: { $regex: `.*${includedKeyword}.*` } })
+    .find({ content: { $regex: includedKeyword } })
     .findOne({ _id: { $lt: nextCursorId } });
 
   if (nextPost !== null) {
