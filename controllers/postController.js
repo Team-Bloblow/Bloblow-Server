@@ -54,11 +54,22 @@ const find = async (req, res) => {
   const limit = Number(req.query.limit);
   const cursorId = req.query.cursorId;
 
-  const postList = await postModel
-    .find({ keywordId: keywordId })
-    .find({ content: { $regex: `.*${includedKeyword}.*` } })
-    .sort({ createdAt: -1, _id: -1 })
-    .limit(limit);
+  let postList;
+  if (isBlank(cursorId)) {
+    postList = await postModel
+      .find({ keywordId: keywordId })
+      .find({ content: { $regex: `.*${includedKeyword}.*` } })
+      .sort({ _id: -1 })
+      .limit(limit);
+  } else {
+    postList = await postModel
+      .find({ keywordId: keywordId })
+      .find({ content: { $regex: `.*${includedKeyword}.*` } })
+      .find({ _id: { $lt: cursorId } })
+      .sort({ _id: -1 })
+      .limit(limit);
+  }
+
   return res.status(200).json(postList);
 };
 
