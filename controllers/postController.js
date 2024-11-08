@@ -44,9 +44,16 @@ const find = async (req, res) => {
     return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
   }
 
-  const isNotExistKeywordId = (await keywordModel.findOne({ _id: req.params.keywordId })) === null;
-  if (isNotExistKeywordId) {
-    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  const hasKeywordId = (await keywordModel.findOne({ _id: req.params.keywordId })) !== null;
+  if (!hasKeywordId) {
+    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
+  }
+
+  if (!isBlank(req.query.cursorId)) {
+    const hasCursorId = (await postModel.findOne({ _id: req.query.cursorId })) !== null;
+    if (!hasCursorId) {
+      return res.status(400).send({ message: "[NotExistedCursorId] Error occured" });
+    }
   }
 
   const keywordId = req.params.keywordId;
