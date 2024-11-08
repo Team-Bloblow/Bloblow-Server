@@ -50,19 +50,19 @@ const find = async (req, res) => {
   }
 
   const keywordId = req.params.keywordId;
-  const includedKeyword = req.query.includedKeyword;
+  const { includedKeyword, cursorId } = req.query;
   const limit = Number(req.query.limit);
-  const cursorId = req.query.cursorId;
+  let hasNext = false;
+  let items;
 
-  let postList;
   if (isBlank(cursorId)) {
-    postList = await postModel
+    items = await postModel
       .find({ keywordId: keywordId })
       .find({ content: { $regex: `.*${includedKeyword}.*` } })
       .sort({ _id: -1 })
       .limit(limit);
   } else {
-    postList = await postModel
+    items = await postModel
       .find({ keywordId: keywordId })
       .find({ content: { $regex: `.*${includedKeyword}.*` } })
       .find({ _id: { $lt: cursorId } })
@@ -70,7 +70,21 @@ const find = async (req, res) => {
       .limit(limit);
   }
 
-  return res.status(200).json(postList);
+  const nextCursorId = items[items.length - 1]._id;
+  const nextPost = await postModel
+    .find({ keywordId: keywordId })
+    .find({ content: { $regex: `.*${includedKeyword}.*` } })
+    .findOne({ _id: { $lt: nextCursorId } });
+
+  if (nextPost !== null) {
+    hasNext = true;
+  }
+
+  return res.status(200).json({
+    items,
+    nextCursorId,
+    hasNext,
+  });
 };
 
 module.exports = { upsert, find };
