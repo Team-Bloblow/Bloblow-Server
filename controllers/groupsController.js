@@ -12,7 +12,7 @@ const list = async (req, res) => {
       .find({ ownerUid: uid })
       .populate("keywordIdList", "keyword");
     res.status(200).json({ groupLength: groupListResult.length, groupListResult });
-  } catch (error) {
+  } catch {
     return res
       .status(500)
       .send({ message: "[ServerError] Error occured in 'groupsController.list'" });

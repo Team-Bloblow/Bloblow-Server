@@ -28,7 +28,7 @@ const create = async (req, res) => {
     .then((query) => {
       return query.keywordIdList.some((doc) => doc.keyword === req.body.keyword);
     })
-    .catch((error) => {
+    .catch(() => {
       return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
     });
 
@@ -64,7 +64,7 @@ const create = async (req, res) => {
       .findOne({ _id: groupId })
       .populate("keywordIdList", "keyword");
     return res.status(201).json(groupResult);
-  } catch (error) {
+  } catch {
     return res
       .status(500)
       .send({ message: "[ServerError] Error occured in 'keywordController.create'" });
