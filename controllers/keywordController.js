@@ -33,8 +33,8 @@ const create = async (req, res) => {
   let groupId = req.body.groupId;
 
   try {
-    const keywordCreated = await keywordModel.create({ keyword, ownerId });
-    const { _id: keywordIdCreated } = keywordCreated;
+    const keywordResult = await keywordModel.create({ keyword, ownerId });
+    const { _id: keywordIdCreated } = keywordResult;
 
     if (isEmptyString(groupId)) {
       const { _id } = await groupModel.create({
