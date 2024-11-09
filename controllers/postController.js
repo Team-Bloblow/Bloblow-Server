@@ -93,7 +93,7 @@ const list = async (req, res) => {
       nextCursorId,
       hasNext,
     });
-  } catch (error) {
+  } catch {
     return res
       .status(500)
       .send({ message: "[ServerError] Error occured in 'postController.list'" });

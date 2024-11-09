@@ -1,4 +1,3 @@
-const keywordModel = require("../models/keywordModel");
 const userModel = require("../models/userModel");
 const { isValidString, isEmptyString } = require("../utils/validation");
 
@@ -31,7 +30,7 @@ const create = async (req, res) => {
       { upsert: true, new: true }
     );
     return res.status(201).json({ userResult });
-  } catch (error) {
+  } catch {
     return res
       .status(500)
       .send({ message: "[ServerError] Error occured in 'userController.create'" });
