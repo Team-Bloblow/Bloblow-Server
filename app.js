@@ -7,6 +7,7 @@ const cors = require("cors");
 
 const indexRouter = require("./routes/indexRoute");
 const userRouter = require("./routes/userRoute");
+const groupsRouter = require("./routes/groupsRoute");
 const keywordRouter = require("./routes/keywordRoute");
 const postRouter = require("./routes/postRoute");
 
@@ -35,6 +36,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/user", userRouter);
+app.use("/groups", groupsRouter);
 app.use("/keyword", keywordRouter);
 app.use("/posts", postRouter);
 
