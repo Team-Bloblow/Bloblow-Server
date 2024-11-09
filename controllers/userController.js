@@ -1,4 +1,3 @@
-const keywordModel = require("../models/keywordModel");
 const userModel = require("../models/userModel");
 const { isValidString, isEmptyString } = require("../utils/validation");
 
