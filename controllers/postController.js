@@ -30,7 +30,7 @@ const upsert = async (req) => {
   );
 };
 
-const find = async (req, res) => {
+const list = async (req, res) => {
   if (!isValidString(req.params.keywordId) || isBlank(req.params.keywordId)) {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
@@ -60,38 +60,44 @@ const find = async (req, res) => {
   const { includedKeyword, cursorId } = req.query;
   const limit = Number(req.query.limit);
   let hasNext = false;
-  let items;
+  let postListResult;
 
-  if (isBlank(cursorId)) {
-    items = await postModel
+  try {
+    if (isBlank(cursorId)) {
+      postListResult = await postModel
+        .find({ keywordId: keywordId })
+        .find({ content: { $regex: includedKeyword } })
+        .sort({ _id: -1 })
+        .limit(limit);
+    } else {
+      postListResult = await postModel
+        .find({ keywordId: keywordId })
+        .find({ content: { $regex: includedKeyword } })
+        .find({ _id: { $lt: cursorId } })
+        .sort({ _id: -1 })
+        .limit(limit);
+    }
+
+    const nextCursorId = postListResult[postListResult.length - 1]?._id;
+    const nextPostResult = await postModel
       .find({ keywordId: keywordId })
       .find({ content: { $regex: includedKeyword } })
-      .sort({ _id: -1 })
-      .limit(limit);
-  } else {
-    items = await postModel
-      .find({ keywordId: keywordId })
-      .find({ content: { $regex: includedKeyword } })
-      .find({ _id: { $lt: cursorId } })
-      .sort({ _id: -1 })
-      .limit(limit);
+      .findOne({ _id: { $lt: nextCursorId } });
+
+    if (nextPostResult !== null) {
+      hasNext = true;
+    }
+
+    return res.status(200).json({
+      items: postListResult,
+      nextCursorId,
+      hasNext,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.list'" });
   }
-
-  const nextCursorId = items[items.length - 1]?._id;
-  const nextPost = await postModel
-    .find({ keywordId: keywordId })
-    .find({ content: { $regex: includedKeyword } })
-    .findOne({ _id: { $lt: nextCursorId } });
-
-  if (nextPost !== null) {
-    hasNext = true;
-  }
-
-  return res.status(200).json({
-    items,
-    nextCursorId,
-    hasNext,
-  });
 };
 
-module.exports = { upsert, find };
+module.exports = { upsert, list };
