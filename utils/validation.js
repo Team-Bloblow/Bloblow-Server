@@ -1,5 +1,5 @@
 const isValidString = (string) => {
-  if (string === null || string === undefined || typeof string !== "string") {
+  if (typeof string !== "string") {
     return false;
   }
 
@@ -7,7 +7,7 @@ const isValidString = (string) => {
 };
 
 const isValidNumber = (number) => {
-  if (number === null || number === undefined || typeof number !== "number") {
+  if (typeof number !== "number") {
     return false;
   }
 
@@ -15,7 +15,7 @@ const isValidNumber = (number) => {
 };
 
 const isBlank = (string) => {
-  if (string === "" || string.trim() === "") {
+  if (string.trim() === "") {
     return true;
   }
 
