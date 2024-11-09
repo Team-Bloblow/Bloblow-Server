@@ -8,6 +8,7 @@ const cors = require("cors");
 const indexRouter = require("./routes/indexRoute");
 const userRouter = require("./routes/userRoute");
 const keywordRouter = require("./routes/keywordRoute");
+const postRouter = require("./routes/postRoute");
 
 const mongoose = require("mongoose");
 
@@ -35,6 +36,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/", indexRouter);
 app.use("/user", userRouter);
 app.use("/keyword", keywordRouter);
+app.use("/posts", postRouter);
 
 app.use(function (req, res, next) {
   next(createError(404));
