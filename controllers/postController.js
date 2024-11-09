@@ -65,13 +65,13 @@ const list = async (req, res) => {
   try {
     if (isBlank(cursorId)) {
       postListResult = await postModel
-        .find({ keywordId: keywordId })
+        .find({ keywordId })
         .find({ content: { $regex: includedKeyword } })
         .sort({ _id: -1 })
         .limit(limit);
     } else {
       postListResult = await postModel
-        .find({ keywordId: keywordId })
+        .find({ keywordId })
         .find({ content: { $regex: includedKeyword } })
         .find({ _id: { $lt: cursorId } })
         .sort({ _id: -1 })
