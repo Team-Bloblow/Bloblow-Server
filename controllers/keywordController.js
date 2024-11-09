@@ -7,8 +7,8 @@ const create = async (req, res) => {
   if (!isValidString(req.body.groupId)) {
     return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
   }
-  if (!isValidString(req.body.ownerId)) {
-    return res.status(400).send({ message: "[InvalidOwnerId] Error occured" });
+  if (!isValidString(req.body.ownerUid)) {
+    return res.status(400).send({ message: "[InvalidOwnerUid] Error occured" });
   }
   if (!isValidString(req.body.keyword)) {
     return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
@@ -21,25 +21,32 @@ const create = async (req, res) => {
     }
   }
 
-  const isDuplicatedKeyword =
-    (await keywordModel.findOne({ groupId: req.body.groupId, keywordList: req.body.keyword })) ===
-    null;
+  const isDuplicatedKeyword = await groupModel
+    .findOne({ _id: req.body.groupId })
+    .populate("keywordIdList", "keyword")
+    .exec()
+    .then((query) => {
+      return query.keywordIdList.some((doc) => doc.keyword === req.body.keyword);
+    })
+    .catch((error) => {
+      return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+    });
 
   if (isDuplicatedKeyword) {
     return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
   }
 
-  const { groupName, keyword, ownerId } = req.body;
+  const { groupName, keyword, ownerUid } = req.body;
   let groupId = req.body.groupId;
 
   try {
-    const keywordResult = await keywordModel.create({ keyword, ownerId });
+    const keywordResult = await keywordModel.create({ keyword, ownerUid });
     const { _id: keywordIdCreated } = keywordResult;
 
     if (isEmptyString(groupId)) {
       const { _id } = await groupModel.create({
         name: groupName,
-        ownerId,
+        ownerUid,
         keywordIdList: [keywordIdCreated],
       });
 
