@@ -17,22 +17,20 @@ const create = async (req, res) => {
   }
 
   const { uid, email, displayName, photoURL } = req.body;
-  const isNewUser = (await userModel.find({ uid })).length === 0;
 
   try {
-    if (isNewUser) {
-      const userCreated = await userModel.create({ uid, email, displayName, photoURL });
-
-      return res.status(201).json({ userCreated });
-    } else {
-      const userUpdated = await userModel.findOneAndUpdate(
-        { uid },
-        { $set: { lastSignInAt: new Date() } },
-        { new: true }
-      );
-
-      return res.status(201).json({ userUpdated });
-    }
+    const userResult = await userModel.findOneAndUpdate(
+      { uid },
+      {
+        $setOnInsert: {
+          email,
+          displayName,
+          photoURL,
+        },
+      },
+      { upsert: true, new: true }
+    );
+    return res.status(201).json({ userResult });
   } catch (error) {
     return res
       .status(500)
