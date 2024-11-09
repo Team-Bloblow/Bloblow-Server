@@ -11,7 +11,7 @@ const list = async (req, res) => {
     const groupListResult = await groupModel
       .find({ ownerUid: uid })
       .populate("keywordIdList", "keyword");
-    res.status(200).json({ groupLength: groupListResult.length, groupListResult });
+    res.status(200).json({ groupListLength: groupListResult.length, groupListResult });
   } catch {
     return res
       .status(500)
