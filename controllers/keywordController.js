@@ -15,15 +15,15 @@ const create = async (req, res) => {
   }
 
   if (!isBlank(req.body.groupId)) {
-    const isNotExistedGroupId = (await groupModel.find({ _id: req.body.groupId })).length === 0;
+    const isNotExistedGroupId = (await groupModel.findOne({ _id: req.body.groupId })) === null;
     if (isNotExistedGroupId) {
       return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
     }
   }
 
   const isDuplicatedKeyword =
-    (await keywordModel.find({ groupId: req.body.groupId, keywordList: req.body.keyword }))
-      .length !== 0;
+    (await keywordModel.findOne({ groupId: req.body.groupId, keywordList: req.body.keyword })) ===
+    null;
 
   if (isDuplicatedKeyword) {
     return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
