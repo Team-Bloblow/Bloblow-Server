@@ -1,6 +1,6 @@
 const keywordModel = require("../models/keywordModel");
 const groupModel = require("../models/groupModel");
-const { isValidString, isBlank } = require("../utils/validation");
+const { isValidString, isEmptyString } = require("../utils/validation");
 const { getKeywordPostList } = require("../services/crawling");
 
 const create = async (req, res) => {
@@ -14,7 +14,7 @@ const create = async (req, res) => {
     return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
   }
 
-  if (!isBlank(req.body.groupId)) {
+  if (!isEmptyString(req.body.groupId)) {
     const isNotExistedGroupId = (await groupModel.findOne({ _id: req.body.groupId })) === null;
     if (isNotExistedGroupId) {
       return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
@@ -36,7 +36,7 @@ const create = async (req, res) => {
     const keywordCreated = await keywordModel.create({ keyword, ownerId });
     const { _id: keywordIdCreated } = keywordCreated;
 
-    if (isBlank(groupId)) {
+    if (isEmptyString(groupId)) {
       const { _id } = await groupModel.create({
         name: groupName,
         ownerId,

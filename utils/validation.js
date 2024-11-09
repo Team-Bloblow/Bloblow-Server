@@ -14,7 +14,7 @@ const isValidNumber = (number) => {
   return true;
 };
 
-const isBlank = (string) => {
+const isEmptyString = (string) => {
   if (string.trim() === "") {
     return true;
   }
@@ -22,4 +22,4 @@ const isBlank = (string) => {
   return false;
 };
 
-module.exports = { isValidString, isValidNumber, isBlank };
+module.exports = { isValidString, isValidNumber, isEmptyString };

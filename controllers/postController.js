@@ -1,6 +1,6 @@
 const postModel = require("../models/postModel");
 const keywordModel = require("../models/keywordModel");
-const { isValidString, isValidNumber, isBlank } = require("../utils/validation");
+const { isValidString, isValidNumber, isEmptyString } = require("../utils/validation");
 
 const upsert = async (req) => {
   if (
@@ -31,7 +31,7 @@ const upsert = async (req) => {
 };
 
 const list = async (req, res) => {
-  if (!isValidString(req.params.keywordId) || isBlank(req.params.keywordId)) {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
   if (!isValidString(req.query.includedKeyword)) {
@@ -49,7 +49,7 @@ const list = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
-  if (!isBlank(req.query.cursorId)) {
+  if (!isEmptyString(req.query.cursorId)) {
     const hasCursorId = (await postModel.findOne({ _id: req.query.cursorId })) !== null;
     if (!hasCursorId) {
       return res.status(400).send({ message: "[NotExistedCursorId] Error occured" });
@@ -63,7 +63,7 @@ const list = async (req, res) => {
   let postListResult;
 
   try {
-    if (isBlank(cursorId)) {
+    if (isEmptyString(cursorId)) {
       postListResult = await postModel
         .find({ keywordId })
         .find({ content: { $regex: includedKeyword } })
