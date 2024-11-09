@@ -1,18 +1,18 @@
 const keywordModel = require("../models/keywordModel");
 const userModel = require("../models/userModel");
-const { isValidString, isBlank } = require("../utils/validation");
+const { isValidString, isEmptyString } = require("../utils/validation");
 
 const create = async (req, res) => {
-  if (!isValidString(req.body.uid) || isBlank(req.body.uid)) {
+  if (!isValidString(req.body.uid) || isEmptyString(req.body.uid)) {
     return res.status(400).send({ message: "[InvalidUid] Error occured" });
   }
-  if (!isValidString(req.body.email) || isBlank(req.body.email)) {
+  if (!isValidString(req.body.email) || isEmptyString(req.body.email)) {
     return res.status(400).send({ message: "[InvalidEmail] Error occured" });
   }
-  if (!isValidString(req.body.displayName) || isBlank(req.body.displayName)) {
+  if (!isValidString(req.body.displayName) || isEmptyString(req.body.displayName)) {
     return res.status(400).send({ message: "[InvalidDisplayName] Error occured" });
   }
-  if (!isValidString(req.body.photoURL) || isBlank(req.body.photoURL)) {
+  if (!isValidString(req.body.photoURL) || isEmptyString(req.body.photoURL)) {
     return res.status(400).send({ message: "[InvalidPhotoURL] Error occured" });
   }
 
