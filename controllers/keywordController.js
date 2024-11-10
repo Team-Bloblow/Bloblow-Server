@@ -19,21 +19,21 @@ const create = async (req, res) => {
     if (isNotExistedGroupId) {
       return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
     }
-  }
 
-  const isDuplicatedKeyword = await groupModel
-    .findOne({ _id: req.body.groupId })
-    .populate("keywordIdList", "keyword")
-    .exec()
-    .then((query) => {
-      return query.keywordIdList.some((doc) => doc.keyword === req.body.keyword);
-    })
-    .catch(() => {
-      return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
-    });
+    const isDuplicatedKeyword = await groupModel
+      .findOne({ _id: req.body.groupId })
+      .populate("keywordIdList", "keyword")
+      .exec()
+      .then((query) => {
+        return query.keywordIdList.some((doc) => doc.keyword === req.body.keyword);
+      })
+      .catch(() => {
+        return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+      });
 
-  if (isDuplicatedKeyword) {
-    return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
+    if (isDuplicatedKeyword) {
+      return res.status(400).send({ message: "[ExistedKeyword] Error occured" });
+    }
   }
 
   const { groupName, keyword, ownerUid } = req.body;
