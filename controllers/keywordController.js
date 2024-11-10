@@ -71,22 +71,4 @@ const create = async (req, res) => {
   }
 };
 
-const list = async (req, res) => {
-  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
-    return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
-  }
-
-  try {
-    const { keywordId } = req.params;
-    const keywordListResult = await groupModel
-      .find({ ownerUid: uid })
-      .populate("keywordIdList", "keyword");
-    res.status(200).json({ groupListLength: groupListResult.length, groupListResult });
-  } catch {
-    return res
-      .status(500)
-      .send({ message: "[ServerError] Error occured in 'keywordController.list'" });
-  }
-};
-
-module.exports = { create, list };
+module.exports = { create };
