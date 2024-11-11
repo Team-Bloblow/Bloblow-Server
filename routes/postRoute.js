@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const postController = require("../controllers/postController");
 
+router.get("/:keywordId/today", postController.today);
 router.get("/:keywordId", postController.list);
 router.get("/keywords/:keywordId/today", postController.today);
 router.get("/keywords/:keywordId/postCount", postController.postCount);
