@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer");
 const { isToday } = require("../utils/date");
 const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../config/constants");
 const postController = require("../controllers/postController");
+const { sanitizeHtmlEntity } = require("../utils/sanitizeHtmlEntity");
 
 require("dotenv").config();
 
@@ -38,9 +39,9 @@ const getPostCrawlingData = async (post) => {
   const isAd = await Promise.resolve(content.includes("소정의 원고료"));
 
   return {
-    title: post.title,
+    title: sanitizeHtmlEntity(post.title),
     link: post.link,
-    description: post.description,
+    description: sanitizeHtmlEntity(post.description),
     content,
     likeCount,
     commentCount,
