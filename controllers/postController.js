@@ -100,4 +100,60 @@ const list = async (req, res) => {
   }
 };
 
-module.exports = { upsert, list };
+const today = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  const hasKeywordId = (await keywordModel.findOne({ _id: req.params.keywordId }).exec()) !== null;
+  if (!hasKeywordId) {
+    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
+  }
+
+  const keywordId = req.params.keywordId;
+
+  try {
+    const today = new Date();
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+
+    const todayPostCount = await postModel
+      .find({ keywordId })
+      .find({
+        createdAt: {
+          $gte: today.setHours(0, 0, 0, 0),
+          $lt: today.setHours(23, 59, 59, 999),
+        },
+      })
+      .countDocuments()
+      .exec();
+
+    const yesterdayPostCount = await postModel
+      .find({ keywordId })
+      .find({
+        createdAt: {
+          $gte: yesterday.setHours(0, 0, 0, 0),
+          $lt: yesterday.setHours(23, 59, 59, 999),
+        },
+      })
+      .countDocuments()
+      .exec();
+
+    const diffPostCount = todayPostCount - yesterdayPostCount;
+    const diffPercent =
+      Math.min(todayPostCount, yesterdayPostCount) > 0
+        ? Math.abs(diffPostCount) / todayPostCount
+        : 0;
+
+    return res.status(200).json({
+      todayPostCount,
+      diffPostCount,
+      diffPercent,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.today'" });
+  }
+};
+
+module.exports = { upsert, list, today };
