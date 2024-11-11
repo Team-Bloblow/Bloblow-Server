@@ -4,7 +4,7 @@ const postModel = require("../models/postModel");
 
 const list = async (req, res) => {
   if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
-    return res.status(400).send({ message: "[InvalidKeyword] Error occured" });
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
 
   try {
