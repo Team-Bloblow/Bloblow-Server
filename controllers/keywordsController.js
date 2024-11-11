@@ -22,4 +22,17 @@ const list = async (req, res) => {
   }
 };
 
-module.exports = { list };
+const put = async (req, res) => {
+  try {
+    const { keywordId } = req.params;
+    const { includedKeyword, excludedKeyword } = req.body;
+    const keywordResult = await keywordModel
+      .findByIdAndUpdate(keywordId, { $set: { includedKeyword, excludedKeyword } }, { new: true })
+      .exec();
+    res.status(200).json(keywordResult);
+  } catch {
+    res.status(500).send({ message: "[ServerError] Error occured in 'keywordsController.put'" });
+  }
+};
+
+module.exports = { list, put };
