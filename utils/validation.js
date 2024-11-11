@@ -14,6 +14,14 @@ const isValidNumber = (number) => {
   return true;
 };
 
+const isValidBoolean = (boolean) => {
+  if (typeof boolean !== "boolean") {
+    return false;
+  }
+
+  return true;
+};
+
 const isEmptyString = (string) => {
   if (string.trim() === "") {
     return true;
@@ -22,4 +30,4 @@ const isEmptyString = (string) => {
   return false;
 };
 
-module.exports = { isValidString, isValidNumber, isEmptyString };
+module.exports = { isValidString, isValidNumber, isValidBoolean, isEmptyString };

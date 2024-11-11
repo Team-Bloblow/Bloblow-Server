@@ -35,6 +35,7 @@ const getPostCrawlingData = async (post) => {
   const likeCount = await page.evaluate(
     () => parseInt(document.querySelector(".u_cnt._count").innerText.trim()) || 0
   );
+  const isAd = await Promise.resolve(content.includes("소정의 원고료"));
 
   return {
     title: post.title,
@@ -43,6 +44,7 @@ const getPostCrawlingData = async (post) => {
     content,
     likeCount,
     commentCount,
+    isAd,
   };
 };
 
