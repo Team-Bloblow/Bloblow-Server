@@ -10,7 +10,8 @@ const list = async (req, res) => {
     const { uid } = req.params;
     const groupListResult = await groupModel
       .find({ ownerUid: uid })
-      .populate("keywordIdList", "keyword");
+      .populate("keywordIdList", "keyword")
+      .sort({ updatedAt: -1 });
     res.status(200).json({ groupListLength: groupListResult.length, groupListResult });
   } catch {
     return res

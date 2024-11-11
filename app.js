@@ -9,6 +9,7 @@ const indexRouter = require("./routes/indexRoute");
 const userRouter = require("./routes/userRoute");
 const groupsRouter = require("./routes/groupsRoute");
 const keywordRouter = require("./routes/keywordRoute");
+const keywordsRouter = require("./routes/keywordsRoute");
 const postRouter = require("./routes/postRoute");
 
 const mongoose = require("mongoose");
@@ -38,6 +39,7 @@ app.use("/", indexRouter);
 app.use("/user", userRouter);
 app.use("/groups", groupsRouter);
 app.use("/keyword", keywordRouter);
+app.use("/keywords", keywordsRouter);
 app.use("/posts", postRouter);
 
 app.use(function (req, res, next) {
