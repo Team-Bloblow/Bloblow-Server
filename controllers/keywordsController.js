@@ -1,4 +1,4 @@
-const { isValidString, isEmptyString } = require("../utils/validation");
+const { isValidString, isEmptyString, isValidArray } = require("../utils/validation");
 const keywordModel = require("../models/keywordModel");
 const postModel = require("../models/postModel");
 
@@ -51,7 +51,9 @@ const put = async (req, res) => {
     const keywordResult = await keywordModel
       .findByIdAndUpdate(keywordId, { $set: { includedKeyword, excludedKeyword } }, { new: true })
       .exec();
-    res.status(200).json(keywordResult);
+    const postList = await postModel.find({ keywordId }).exec();
+    const postIdList = postList.length === 0 ? [] : postList.map((data) => data._id);
+    res.status(200).json({ ...keywordResult.toObject(), postId: postIdList });
   } catch {
     res.status(500).send({ message: "[ServerError] Error occured in 'keywordsController.put'" });
   }
