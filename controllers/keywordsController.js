@@ -14,7 +14,7 @@ const list = async (req, res) => {
     const postList = await postModel.find({ keywordId }).exec();
     const postIdList = postList.length === 0 ? [] : postList.map((data) => data._id);
 
-    res.status(200).json({ ...keywordResult._doc, postId: postIdList });
+    res.status(200).json({ ...keywordResult.toObject(), postId: postIdList });
   } catch {
     return res
       .status(500)
