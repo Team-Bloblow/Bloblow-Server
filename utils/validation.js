@@ -22,4 +22,12 @@ const isEmptyString = (string) => {
   return false;
 };
 
-module.exports = { isValidString, isValidNumber, isEmptyString };
+const isValidArray = (array) => {
+  if (Array.isArray(array)) {
+    return true;
+  }
+
+  return false;
+};
+
+module.exports = { isValidString, isValidNumber, isEmptyString, isValidArray };

@@ -23,6 +23,28 @@ const list = async (req, res) => {
 };
 
 const put = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  if (
+    !isValidArray(req.body.includedKeyword) ||
+    !req.body.includedKeyword.every((el) => isValidString(el))
+  ) {
+    return res.status(400).send({ message: "[InvalidIncludedKeyword] Error occured" });
+  }
+
+  if (
+    !isValidArray(req.body.excludedKeyword) ||
+    !req.body.excludedKeyword.every((el) => isValidString(el))
+  ) {
+    return res.status(400).send({ message: "[InvalidExcludedKeyword] Error occured" });
+  }
+
+  if (!isValidString(req.body.ownerUid) || isEmptyString(req.body.ownerUid)) {
+    return res.status(400).send({ message: "[InvalidOwnerUid] Error occured" });
+  }
+
   try {
     const { keywordId } = req.params;
     const { includedKeyword, excludedKeyword } = req.body;
