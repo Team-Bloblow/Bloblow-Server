@@ -128,7 +128,6 @@ const today = async (req, res) => {
       })
       .countDocuments()
       .exec();
-
     const yesterdayPostCount = await postModel
       .find({ keywordId })
       .find({
@@ -140,16 +139,9 @@ const today = async (req, res) => {
       .countDocuments()
       .exec();
 
-    const diffPostCount = todayPostCount - yesterdayPostCount;
-    const diffPercent =
-      Math.min(todayPostCount, yesterdayPostCount) > 0
-        ? Math.abs(diffPostCount) / todayPostCount
-        : 0;
-
     return res.status(200).json({
       todayPostCount,
-      diffPostCount,
-      diffPercent,
+      diffPostCount: todayPostCount - yesterdayPostCount,
     });
   } catch {
     return res
@@ -163,8 +155,8 @@ const postCount = async (req, res) => {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
 
-  const hasKeywordId = (await keywordModel.findOne({ _id: req.params.keywordId }).exec()) !== null;
-  if (!hasKeywordId) {
+  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
+  if (keywordInfo === null) {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
@@ -249,6 +241,7 @@ const postCount = async (req, res) => {
 
     return res.status(200).json({
       keywordId,
+      keyword: keywordInfo.keyword,
       dates,
       postCountList,
       cursorId,
