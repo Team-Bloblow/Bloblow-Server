@@ -10,4 +10,16 @@ const isToday = (comparedDate) => {
   return isSameYear && isSameMonth && isSameDate;
 };
 
-module.exports = { isToday };
+const getCursorWeek = (cursorId, day) => {
+  const startDate = new Date(cursorId);
+  startDate.setDate(startDate.getDate() + day);
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(cursorId);
+  endDate.setDate(endDate.getDate() + 6 + day);
+  endDate.setHours(23, 59, 59, 999);
+
+  return [startDate, endDate];
+};
+
+module.exports = { isToday, getCursorWeek };
