@@ -315,9 +315,7 @@ const postLike = async (req, res) => {
       cursorIdDate.setHours(0, 0, 0, 0);
       cursorIdDate = cursorIdDate.toISOString();
     } else {
-      cursorIdDate = new Date(req.query.cursorId);
-      cursorIdDate.setHours(0, 0, 0, 0);
-      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+      cursorIdDate = req.query.cursorId;
     }
   } else {
     return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
