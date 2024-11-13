@@ -297,7 +297,9 @@ const groupPostCount = async (req, res) => {
       cursorIdDate.setHours(0, 0, 0, 0);
       cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
     } else {
-      cursorIdDate = req.query.cursorId;
+      cursorIdDate = new Date(req.query.cursorId);
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
     }
   } else {
     return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
