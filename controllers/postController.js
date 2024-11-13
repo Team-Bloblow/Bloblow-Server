@@ -164,21 +164,21 @@ const postCount = async (req, res) => {
 
   const keywordId = req.params.keywordId;
 
-  let cursorId;
+  let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
     if (isEmptyString(req.query.cursorId)) {
-      cursorId = new Date();
-      cursorId.setHours(0, 0, 0, 0);
-      cursorId.setDate(cursorId.getDate() - cursorId.getDay());
+      cursorIdDate = new Date();
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate.setDate(cursorIdDate.getDate() - cursorIdDate.getDay());
     } else {
-      cursorId = req.query.cursorId;
+      cursorIdDate = req.query.cursorId;
     }
   } else {
     return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
   }
 
   try {
-    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorId, 0);
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
 
     const result = await postModel.aggregate([
       { $match: { keywordId } },
@@ -202,15 +202,17 @@ const postCount = async (req, res) => {
       let index = 0;
 
       while (index < DAY_OF_WEEK) {
-        const cursorIdDate = new Date(cursorId);
-        cursorIdDate.setDate(cursorIdDate.getDate() + index);
-        const cursorDate = `${cursorIdDate.getFullYear()}.${cursorIdDate.getMonth() + 1}.${cursorIdDate.getDate()}`;
+        const targetDate = new Date(cursorIdDate);
+        targetDate.setDate(targetDate.getDate() + index);
+        const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${targetDate.getDate()}`;
 
-        const hasCursorDate = result.map((item) => item.date).some((date) => date === cursorDate);
-        if (!hasCursorDate) {
+        const hasTargetDate = result
+          .map((item) => item.date)
+          .some((date) => date === targetDateString);
+        if (!hasTargetDate) {
           result.push({
             postCount: 0,
-            date: cursorDate,
+            date: targetDateString,
           });
         }
 
@@ -222,8 +224,8 @@ const postCount = async (req, res) => {
     const dates = result.map((item) => item.date);
     const postCountList = result.map((item) => item.postCount);
 
-    const [previousStartDate, previousEndDate] = getCursorWeek(cursorId, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorId, DAY_OF_WEEK);
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, DAY_OF_WEEK);
 
     const hasPreviousPosts =
       (await postModel
@@ -250,7 +252,7 @@ const postCount = async (req, res) => {
       keyword: keywordInfo.keyword,
       dates,
       postCountList,
-      cursorId,
+      cursorId: cursorIdDate,
       previousCursorId: previousStartDate,
       nextCursorId: nextStartDate,
       hasPrevious: hasPreviousPosts,
