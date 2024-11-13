@@ -218,7 +218,7 @@ const postCount = async (req, res) => {
       }
     }
 
-    result.sort((a, b) => a.date - b.date);
+    result.sort((a, b) => new Date(a.date) - new Date(b.date));
     const dates = result.map((item) => item.date);
     const postCountList = result.map((item) => item.postCount);
 
