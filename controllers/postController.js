@@ -1,6 +1,11 @@
 const postModel = require("../models/postModel");
 const keywordModel = require("../models/keywordModel");
-const { isValidString, isValidNumber, isEmptyString } = require("../utils/validation");
+const {
+  isValidString,
+  isValidNumber,
+  isEmptyString,
+  isValidBoolean,
+} = require("../utils/validation");
 
 const upsert = async (req) => {
   if (
@@ -9,7 +14,8 @@ const upsert = async (req) => {
     !isValidString(req.description) ||
     !isValidString(req.content) ||
     !isValidNumber(req.commentCount) ||
-    !isValidNumber(req.likeCount)
+    !isValidNumber(req.likeCount) ||
+    !isValidBoolean(req.isAd)
   ) {
     return;
   }
@@ -25,6 +31,7 @@ const upsert = async (req) => {
       content: req.content,
       commentCount: req.commentCount,
       likeCount: req.likeCount,
+      isAd: req.isAd,
     },
     { upsert: true }
   );
