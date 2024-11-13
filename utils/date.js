@@ -10,13 +10,13 @@ const isToday = (comparedDate) => {
   return isSameYear && isSameMonth && isSameDate;
 };
 
-const getCursorWeek = (cursorId, day) => {
+const getCursorWeek = (cursorId, addDay) => {
   const startDate = new Date(cursorId);
-  startDate.setDate(startDate.getDate() + day);
+  startDate.setDate(startDate.getDate() + addDay);
   startDate.setHours(0, 0, 0, 0);
 
   const endDate = new Date(cursorId);
-  endDate.setDate(endDate.getDate() + 6 + day);
+  endDate.setDate(endDate.getDate() + 6 + addDay);
   endDate.setHours(23, 59, 59, 999);
 
   return [startDate, endDate];
