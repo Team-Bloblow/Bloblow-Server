@@ -107,8 +107,8 @@ const today = async (req, res) => {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
 
-  const hasKeywordId = (await keywordModel.findOne({ _id: req.params.keywordId }).exec()) !== null;
-  if (!hasKeywordId) {
+  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
+  if (keywordInfo === null) {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
@@ -140,8 +140,10 @@ const today = async (req, res) => {
       .exec();
 
     return res.status(200).json({
+      id: keywordId,
+      keyword: keywordInfo.keyword,
       todayPostCount,
-      diffPostCount: todayPostCount - yesterdayPostCount,
+      diffPostCount: (todayPostCount - yesterdayPostCount).toString(),
     });
   } catch {
     return res
