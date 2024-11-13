@@ -1,6 +1,11 @@
 const postModel = require("../models/postModel");
 const keywordModel = require("../models/keywordModel");
-const { isValidString, isValidNumber, isEmptyString } = require("../utils/validation");
+const {
+  isValidString,
+  isValidNumber,
+  isEmptyString,
+  isValidBoolean,
+} = require("../utils/validation");
 const { getCursorWeek } = require("../utils/date");
 const { DAY_OF_WEEK } = require("../config/constants");
 
@@ -11,7 +16,8 @@ const upsert = async (req) => {
     !isValidString(req.description) ||
     !isValidString(req.content) ||
     !isValidNumber(req.commentCount) ||
-    !isValidNumber(req.likeCount)
+    !isValidNumber(req.likeCount) ||
+    !isValidBoolean(req.isAd)
   ) {
     return;
   }
@@ -27,6 +33,7 @@ const upsert = async (req) => {
       content: req.content,
       commentCount: req.commentCount,
       likeCount: req.likeCount,
+      isAd: req.isAd,
     },
     { upsert: true }
   );
