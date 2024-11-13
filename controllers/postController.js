@@ -6,6 +6,8 @@ const {
   isEmptyString,
   isValidBoolean,
 } = require("../utils/validation");
+const { getCursorWeek } = require("../utils/date");
+const { DAY_OF_WEEK } = require("../config/constants");
 
 const upsert = async (req) => {
   if (
@@ -107,4 +109,167 @@ const list = async (req, res) => {
   }
 };
 
-module.exports = { upsert, list };
+const today = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
+  if (keywordInfo === null) {
+    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
+  }
+
+  const keywordId = req.params.keywordId;
+
+  try {
+    const today = new Date();
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+
+    const todayPostCount = await postModel
+      .find({ keywordId })
+      .find({
+        createdAt: {
+          $gte: new Date().setHours(0, 0, 0, 0),
+          $lt: new Date().setHours(23, 59, 59, 999),
+        },
+      })
+      .countDocuments()
+      .exec();
+    const yesterdayPostCount = await postModel
+      .find({ keywordId })
+      .find({
+        createdAt: {
+          $gte: new Date(yesterday).setHours(0, 0, 0, 0),
+          $lt: new Date(yesterday).setHours(23, 59, 59, 999),
+        },
+      })
+      .countDocuments()
+      .exec();
+
+    return res.status(200).json({
+      id: keywordId,
+      keyword: keywordInfo.keyword,
+      todayPostCount,
+      diffPostCount: (todayPostCount - yesterdayPostCount).toString(),
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.today'" });
+  }
+};
+
+const postCount = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
+  if (keywordInfo === null) {
+    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
+  }
+
+  const keywordId = req.params.keywordId;
+
+  let cursorIdDate;
+  if (isValidString(req.query.cursorId)) {
+    if (isEmptyString(req.query.cursorId)) {
+      cursorIdDate = new Date();
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate.setDate(cursorIdDate.getDate() - cursorIdDate.getDay());
+    } else {
+      cursorIdDate = req.query.cursorId;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
+  }
+
+  try {
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
+
+    const result = await postModel.aggregate([
+      { $match: { keywordId } },
+      {
+        $match: {
+          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+          postCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $addFields: { date: "$_id" } },
+      { $project: { _id: 0 } },
+    ]);
+
+    if (result.length < DAY_OF_WEEK) {
+      let index = 0;
+
+      while (index < DAY_OF_WEEK) {
+        const targetDate = new Date(cursorIdDate);
+        targetDate.setDate(targetDate.getDate() + index);
+        const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${targetDate.getDate()}`;
+
+        const hasTargetDate = result
+          .map((item) => item.date)
+          .some((date) => date === targetDateString);
+        if (!hasTargetDate) {
+          result.push({
+            postCount: 0,
+            date: targetDateString,
+          });
+        }
+
+        index += 1;
+      }
+    }
+
+    result.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const dates = result.map((item) => item.date);
+    const postCountList = result.map((item) => item.postCount);
+
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, DAY_OF_WEEK);
+
+    const hasPreviousPosts =
+      (await postModel
+        .find({ keywordId })
+        .find({
+          $and: [
+            { createdAt: { $gte: previousStartDate } },
+            { createdAt: { $lt: previousEndDate } },
+          ],
+        })
+        .countDocuments()
+        .exec()) > 0;
+    const hasNextPosts =
+      (await postModel
+        .find({ keywordId })
+        .find({
+          $and: [{ createdAt: { $gte: nextStartDate } }, { createdAt: { $lt: nextEndDate } }],
+        })
+        .countDocuments()
+        .exec()) > 0;
+
+    return res.status(200).json({
+      keywordId,
+      keyword: keywordInfo.keyword,
+      dates,
+      postCountList,
+      cursorId: cursorIdDate,
+      previousCursorId: previousStartDate,
+      nextCursorId: nextStartDate,
+      hasPrevious: hasPreviousPosts,
+      hasNext: hasNextPosts,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.postCount'" });
+  }
+};
+
+module.exports = { upsert, list, today, postCount };
