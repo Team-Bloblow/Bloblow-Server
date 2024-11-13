@@ -176,7 +176,7 @@ const postCount = async (req, res) => {
     if (isEmptyString(req.query.cursorId)) {
       cursorIdDate = new Date();
       cursorIdDate.setHours(0, 0, 0, 0);
-      cursorIdDate.setDate(cursorIdDate.getDate() - cursorIdDate.getDay());
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
     } else {
       cursorIdDate = req.query.cursorId;
     }
@@ -185,7 +185,7 @@ const postCount = async (req, res) => {
   }
 
   try {
-    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate);
 
     const result = await postModel.aggregate([
       { $match: { keywordId } },
@@ -209,7 +209,7 @@ const postCount = async (req, res) => {
       let index = 0;
 
       while (index < DAY_OF_WEEK) {
-        const targetDate = new Date(cursorIdDate);
+        const targetDate = new Date(cursorStartDate);
         targetDate.setDate(targetDate.getDate() + index);
         const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${targetDate.getDate()}`;
 
@@ -232,7 +232,12 @@ const postCount = async (req, res) => {
     const postCountList = result.map((item) => item.postCount);
 
     const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, DAY_OF_WEEK);
+    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+
+    const previousCursorId = new Date(previousStartDate);
+    previousCursorId.setDate(previousStartDate.getDate() - 1);
+    const nextCursorId = new Date(nextStartDate);
+    nextCursorId.setDate(nextStartDate.getDate() - 1);
 
     const hasPreviousPosts =
       (await postModel
@@ -260,8 +265,8 @@ const postCount = async (req, res) => {
       dates,
       postCountList,
       cursorId: cursorIdDate,
-      previousCursorId: previousStartDate,
-      nextCursorId: nextStartDate,
+      previousCursorId,
+      nextCursorId,
       hasPrevious: hasPreviousPosts,
       hasNext: hasNextPosts,
     });
