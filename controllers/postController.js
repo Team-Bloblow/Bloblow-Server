@@ -8,6 +8,7 @@ const {
 } = require("../utils/validation");
 const { getCursorWeek } = require("../utils/date");
 const { DAY_OF_WEEK } = require("../config/constants");
+const groupModel = require("../models/groupModel");
 
 const upsert = async (req) => {
   if (
@@ -277,4 +278,144 @@ const postCount = async (req, res) => {
   }
 };
 
-module.exports = { upsert, list, today, postCount };
+const groupPostCount = async (req, res) => {
+  if (!isValidString(req.params.groupId) || isEmptyString(req.params.groupId)) {
+    return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+  }
+
+  const groupInfo = await groupModel.findOne({ _id: req.params.groupId }).exec();
+  if (groupInfo === null) {
+    return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+  }
+
+  const groupId = req.params.groupId;
+
+  let cursorIdDate;
+  if (isValidString(req.query.cursorId)) {
+    if (isEmptyString(req.query.cursorId)) {
+      cursorIdDate = new Date();
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+    } else {
+      cursorIdDate = req.query.cursorId;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
+  }
+
+  try {
+    const group = await groupModel.findById(groupId).exec();
+    const keywordIdList = group.keywordIdList;
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate);
+
+    let allKeywordsResult = [];
+
+    for await (const keywordId of keywordIdList) {
+      const stringifiedKeywordId = keywordId.toString();
+      const keywordResult = await postModel.aggregate([
+        { $match: { keywordId: stringifiedKeywordId } },
+        {
+          $match: {
+            $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+            postCount: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+        { $addFields: { date: "$_id" } },
+        { $project: { _id: 0 } },
+      ]);
+
+      if (keywordResult.length < DAY_OF_WEEK) {
+        let index = 0;
+
+        while (index < DAY_OF_WEEK) {
+          const targetDate = new Date(cursorIdDate);
+          targetDate.setDate(targetDate.getDate() + index + 1);
+          const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${targetDate.getDate()}`;
+
+          const hasTargetDate = keywordResult.some((result) => result.date === targetDateString);
+          if (!hasTargetDate) {
+            keywordResult.push({
+              postCount: 0,
+              date: targetDateString,
+            });
+          }
+
+          index += 1;
+        }
+      }
+
+      keywordResult.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const keyword = await keywordModel.findOne({ _id: keywordId }).exec();
+      const keywordName = keyword.keyword;
+      const postCountList = keywordResult.map((item) => item.postCount);
+      const dates = keywordResult.map((item) => item.date);
+
+      allKeywordsResult.push({ name: keywordName, postCountList, dates });
+    }
+
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+
+    const previousCursorId = new Date(previousStartDate);
+    previousCursorId.setDate(previousStartDate.getDate() - 1);
+    const nextCursorId = new Date(nextStartDate);
+    nextCursorId.setDate(nextStartDate.getDate() - 1);
+
+    let previousKeywordsPostsNum = [];
+    for await (const keywordId of keywordIdList) {
+      const previousKeywordPostsNum = await postModel
+        .find({ keywordId })
+        .find({
+          $and: [
+            { createdAt: { $gte: previousStartDate } },
+            { createdAt: { $lt: previousEndDate } },
+          ],
+        })
+        .countDocuments()
+        .exec();
+
+      previousKeywordsPostsNum.push(previousKeywordPostsNum);
+    }
+
+    const hasPreviousPosts = previousKeywordsPostsNum.some((postNum) => postNum > 0);
+
+    let nextKeywordsPostsNum = [];
+    for await (const keywordId of keywordIdList) {
+      const nextKeywordPostsNum = await postModel
+        .find({ keywordId })
+        .find({
+          $and: [{ createdAt: { $gte: nextStartDate } }, { createdAt: { $lt: nextEndDate } }],
+        })
+        .countDocuments()
+        .exec();
+
+      nextKeywordsPostsNum.push(nextKeywordPostsNum);
+    }
+
+    const hasNextPosts = nextKeywordsPostsNum.some((postNum) => postNum > 0);
+
+    return res.status(200).json({
+      groupId,
+      keywordIdList,
+      items: allKeywordsResult,
+      hasPrevious: hasPreviousPosts,
+      hasNext: hasNextPosts,
+      cursorId: cursorIdDate,
+      previousCursorId,
+      nextCursorId,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.groupPostCount'" });
+  }
+};
+
+module.exports = { upsert, list, today, postCount, groupPostCount };
