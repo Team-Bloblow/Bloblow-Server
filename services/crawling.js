@@ -2,6 +2,8 @@ const puppeteer = require("puppeteer");
 const { isToday } = require("../utils/date");
 const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../config/constants");
 const postController = require("../controllers/postController");
+const { sanitizeHtmlEntity } = require("../utils/sanitizeHtmlEntity");
+const { validateAdKeyword } = require("../utils/validation");
 
 require("dotenv").config();
 
@@ -35,14 +37,18 @@ const getPostCrawlingData = async (post) => {
   const likeCount = await page.evaluate(
     () => parseInt(document.querySelector(".u_cnt._count").innerText.trim()) || 0
   );
+  const isAd = await Promise.resolve(
+    validateAdKeyword.some((adKeyword) => content.includes(adKeyword))
+  );
 
   return {
-    title: post.title,
+    title: sanitizeHtmlEntity(post.title),
     link: post.link,
-    description: post.description,
+    description: sanitizeHtmlEntity(post.description),
     content,
     likeCount,
     commentCount,
+    isAd,
   };
 };
 
