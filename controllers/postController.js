@@ -166,11 +166,15 @@ const postCount = async (req, res) => {
 
   let cursorId;
   if (isValidString(req.query.cursorId)) {
-    cursorId = req.query.cursorId;
+    if (isEmptyString(req.query.cursorId)) {
+      cursorId = new Date();
+      cursorId.setHours(0, 0, 0, 0);
+      cursorId.setDate(cursorId.getDate() - cursorId.getDay());
+    } else {
+      cursorId = req.query.cursorId;
+    }
   } else {
-    cursorId = new Date();
-    cursorId.setHours(0, 0, 0, 0);
-    cursorId.setDate(cursorId.getDate() - cursorId.getDay());
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
   }
 
   try {
