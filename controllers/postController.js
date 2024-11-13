@@ -8,6 +8,7 @@ const {
 } = require("../utils/validation");
 const { getCursorWeek } = require("../utils/date");
 const { DAY_OF_WEEK } = require("../config/constants");
+const groupModel = require("../models/groupModel");
 
 const upsert = async (req) => {
   if (
