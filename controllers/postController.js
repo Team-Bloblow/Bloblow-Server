@@ -363,13 +363,13 @@ const postLike = async (req, res) => {
     const hasPreviousPosts =
       (await postModel
         .find({ keywordId })
-        .find({ createdAt: { $lt: previousStartDate } })
+        .find({ createdAt: { $lte: previousEndDate } })
         .countDocuments()
         .exec()) > 0;
     const hasNextPosts =
       (await postModel
         .find({ keywordId })
-        .find({ createdAt: { $gt: nextEndDate } })
+        .find({ createdAt: { $gte: nextStartDate } })
         .countDocuments()
         .exec()) > 0;
 
