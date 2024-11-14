@@ -73,24 +73,31 @@ const list = async (req, res) => {
   const excludedKeywordList = excludedKeyword.split(",").join("|");
   const limit = Number(req.query.limit);
   let hasNext = false;
-  const contentFilter =
-    excludedKeywordList.length === 0
-      ? {
-          $regex: includedKeywordList,
-        }
-      : {
-          $regex: includedKeywordList,
-          $not: { $regex: excludedKeywordList },
-        };
+  let postListResult;
+  const contentFilter = isEmptyString(excludedKeywordList)
+    ? {
+        $regex: includedKeywordList,
+      }
+    : {
+        $regex: includedKeywordList,
+        $not: { $regex: excludedKeywordList },
+      };
 
   try {
-    const postListResult = await postModel
-      .find({ keywordId })
-      .find({
-        content: contentFilter,
-      })
-      .sort({ _id: isEmptyString(cursorId) ? -1 : { $lt: cursorId } })
-      .limit(limit);
+    if (isEmptyString(cursorId)) {
+      postListResult = await postModel
+        .find({ keywordId })
+        .find({ content: contentFilter })
+        .sort({ _id: -1 })
+        .limit(limit);
+    } else {
+      postListResult = await postModel
+        .find({ keywordId })
+        .find({ content: contentFilter })
+        .find({ _id: { $lt: cursorId } })
+        .sort({ _id: -1 })
+        .limit(limit);
+    }
 
     const nextCursorId = postListResult[postListResult.length - 1]?._id;
     const nextPostResult = await postModel
