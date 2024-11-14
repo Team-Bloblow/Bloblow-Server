@@ -244,10 +244,7 @@ const postCount = async (req, res) => {
       (await postModel
         .find({ keywordId })
         .find({
-          $and: [
-            { createdAt: { $gte: previousStartDate } },
-            { createdAt: { $lt: previousEndDate } },
-          ],
+          $and: [{ createdAt: { $lte: previousEndDate } }],
         })
         .countDocuments()
         .exec()) > 0;
@@ -255,7 +252,7 @@ const postCount = async (req, res) => {
       (await postModel
         .find({ keywordId })
         .find({
-          $and: [{ createdAt: { $gte: nextStartDate } }, { createdAt: { $lt: nextEndDate } }],
+          $and: [{ createdAt: { $gte: nextStartDate } }],
         })
         .countDocuments()
         .exec()) > 0;
