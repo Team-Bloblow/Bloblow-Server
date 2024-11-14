@@ -226,7 +226,11 @@ const postCount = async (req, res) => {
       while (index < DAY_OF_WEEK) {
         const targetDate = new Date(cursorStartDate);
         targetDate.setDate(targetDate.getDate() + index);
-        const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${targetDate.getDate()}`;
+        const transformedTargetDate =
+          targetDate.getDate().toString().length === 1
+            ? targetDate.getDate().toString().padStart(2, "0")
+            : targetDate.getDate().toString();
+        const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${transformedTargetDate}`;
 
         const hasTargetDate = result
           .map((item) => item.date)
