@@ -43,67 +43,6 @@ const list = async (req, res) => {
   if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
-  if (!isValidNumber(Number(req.query.limit)) || Number(req.query.limit) <= 0) {
-    return res.status(400).send({ message: "[InvalidLimit] Error occured" });
-  }
-  if (!isValidString(req.query.cursorId)) {
-    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
-  }
-
-  const hasKeywordId = (await keywordModel.findOne({ _id: req.params.keywordId })) !== null;
-  if (!hasKeywordId) {
-    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
-  }
-
-  if (!isEmptyString(req.query.cursorId)) {
-    const hasCursorId = (await postModel.findOne({ _id: req.query.cursorId })) !== null;
-    if (!hasCursorId) {
-      return res.status(400).send({ message: "[NotExistedCursorId] Error occured" });
-    }
-  }
-
-  const keywordId = req.params.keywordId;
-  const cursorId = req.query.cursorId;
-  const limit = Number(req.query.limit);
-  let hasNext = false;
-  let postListResult;
-
-  try {
-    if (isEmptyString(cursorId)) {
-      postListResult = await postModel.find({ keywordId }).sort({ _id: -1 }).limit(limit);
-    } else {
-      postListResult = await postModel
-        .find({ keywordId })
-        .find({ _id: { $lt: cursorId } })
-        .sort({ _id: -1 })
-        .limit(limit);
-    }
-
-    const nextCursorId = postListResult[postListResult.length - 1]?._id;
-    const nextPostResult = await postModel
-      .find({ keywordId: keywordId })
-      .findOne({ _id: { $lt: nextCursorId } });
-
-    if (nextPostResult !== null) {
-      hasNext = true;
-    }
-
-    return res.status(200).json({
-      items: postListResult,
-      nextCursorId,
-      hasNext,
-    });
-  } catch {
-    return res
-      .status(500)
-      .send({ message: "[ServerError] Error occured in 'postController.list'" });
-  }
-};
-
-const listFiltered = async (req, res) => {
-  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
-    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
-  }
   if (!isValidString(req.query.includedKeyword)) {
     return res.status(400).send({ message: "[InvalidIncludedKeyword] Error occured" });
   }
@@ -134,7 +73,7 @@ const listFiltered = async (req, res) => {
   const excludedKeywordList = excludedKeyword.split(",").join("|");
   const limit = Number(req.query.limit);
   let hasNext = false;
-  const queryPostContentCondition =
+  const contentFilter =
     excludedKeywordList.length === 0
       ? {
           $regex: includedKeywordList,
@@ -148,7 +87,7 @@ const listFiltered = async (req, res) => {
     const postListResult = await postModel
       .find({ keywordId })
       .find({
-        content: queryPostContentCondition,
+        content: contentFilter,
       })
       .sort({ _id: isEmptyString(cursorId) ? -1 : { $lt: cursorId } })
       .limit(limit);
@@ -157,7 +96,7 @@ const listFiltered = async (req, res) => {
     const nextPostResult = await postModel
       .find({ keywordId })
       .find({
-        content: queryPostContentCondition,
+        content: contentFilter,
       })
       .findOne({ _id: { $lt: nextCursorId } });
 
@@ -173,7 +112,7 @@ const listFiltered = async (req, res) => {
   } catch {
     return res
       .status(500)
-      .send({ message: "[ServerError] Error occured in 'postController.listFiltered'" });
+      .send({ message: "[ServerError] Error occured in 'postController.list'" });
   }
 };
 
@@ -340,4 +279,4 @@ const postCount = async (req, res) => {
   }
 };
 
-module.exports = { upsert, list, listFiltered, today, postCount };
+module.exports = { upsert, list, today, postCount };
