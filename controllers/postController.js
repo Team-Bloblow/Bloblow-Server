@@ -483,7 +483,7 @@ const postComment = async (req, res) => {
     const postCommentList = postCommentResultList.map((item) => item.commentCount);
 
     const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+    const [nextStartDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
 
     const previousCursorId = new Date(previousStartDate);
     previousCursorId.setDate(previousStartDate.getDate() - 1);
