@@ -337,9 +337,10 @@ const groupPostCount = async (req, res) => {
           $group: {
             _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
             postCount: { $sum: 1 },
+            likeCount: { $sum: "$likeCount" },
+            commentCount: { $sum: "$commentCount" },
           },
         },
-        { $sort: { _id: 1 } },
         { $addFields: { date: "$_id" } },
         { $project: { _id: 0 } },
       ]);
@@ -356,6 +357,8 @@ const groupPostCount = async (req, res) => {
           if (!hasTargetDate) {
             keywordResult.push({
               postCount: 0,
+              likeCount: 0,
+              commentCount: 0,
               date: targetDateString,
             });
           }
@@ -369,13 +372,21 @@ const groupPostCount = async (req, res) => {
       const keyword = await keywordModel.findOne({ _id: keywordId }).exec();
       const keywordName = keyword.keyword;
       const postCountList = keywordResult.map((item) => item.postCount);
+      const likeCountList = keywordResult.map((item) => item.likeCount);
+      const commentCountList = keywordResult.map((item) => item.commentCount);
       const dates = keywordResult.map((item) => item.date);
 
-      allKeywordsResult.push({ name: keywordName, postCountList, dates });
+      allKeywordsResult.push({
+        name: keywordName,
+        postCountList,
+        likeCountList,
+        commentCountList,
+        dates,
+      });
     }
 
     const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+    const [nextStartDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
 
     const previousCursorId = new Date(previousStartDate);
     previousCursorId.setDate(previousStartDate.getDate() - 1);
@@ -386,12 +397,7 @@ const groupPostCount = async (req, res) => {
     for await (const keywordId of keywordIdList) {
       const previousKeywordPostsNum = await postModel
         .find({ keywordId })
-        .find({
-          $and: [
-            { createdAt: { $gte: previousStartDate } },
-            { createdAt: { $lt: previousEndDate } },
-          ],
-        })
+        .find({ createdAt: { $lte: previousEndDate } })
         .countDocuments()
         .exec();
 
@@ -404,9 +410,7 @@ const groupPostCount = async (req, res) => {
     for await (const keywordId of keywordIdList) {
       const nextKeywordPostsNum = await postModel
         .find({ keywordId })
-        .find({
-          $and: [{ createdAt: { $gte: nextStartDate } }, { createdAt: { $lt: nextEndDate } }],
-        })
+        .find({ createdAt: { $gte: nextStartDate } })
         .countDocuments()
         .exec();
 
