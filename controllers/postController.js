@@ -277,4 +277,117 @@ const postCount = async (req, res) => {
   }
 };
 
-module.exports = { upsert, list, today, postCount };
+const postLike = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
+  if (keywordInfo === null) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  let cursorIdDate;
+  if (isValidString(req.query.cursorId)) {
+    if (isEmptyString(req.query.cursorId)) {
+      cursorIdDate = new Date();
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate = cursorIdDate.toISOString();
+    } else {
+      cursorIdDate = req.query.cursorId;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
+  }
+
+  const keywordId = req.params.keywordId;
+
+  try {
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
+
+    const postLikeResultList = await postModel.aggregate([
+      { $match: { keywordId } },
+      {
+        $match: {
+          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+          likeCount: { $sum: "$likeCount" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $addFields: { date: "$_id" } },
+      { $project: { _id: 0 } },
+    ]);
+
+    if (postLikeResultList.length < DAY_OF_WEEK) {
+      let index = 0;
+
+      while (index < DAY_OF_WEEK) {
+        const targetDate = new Date(cursorStartDate);
+        targetDate.setDate(targetDate.getDate() + index);
+        const targetDateString = `${targetDate.getFullYear()}.${targetDate.getMonth() + 1}.${targetDate.getDate()}`;
+
+        const hasTargetDate = postLikeResultList
+          .map((item) => item.date)
+          .some((date) => date === targetDateString);
+
+        if (!hasTargetDate) {
+          postLikeResultList.push({
+            likeCount: 0,
+            date: targetDateString,
+          });
+        }
+
+        index += 1;
+      }
+    }
+
+    postLikeResultList.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const dates = postLikeResultList.map((item) => item.date);
+    const postLikeList = postLikeResultList.map((item) => item.likeCount);
+
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+
+    const previousCursorId = new Date(previousStartDate);
+    previousCursorId.setDate(previousStartDate.getDate() - 1);
+    const nextCursorId = new Date(nextStartDate);
+    nextCursorId.setDate(nextCursorId.getDate() - 1);
+
+    const hasPreviousPosts =
+      (await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $lt: previousStartDate } })
+        .countDocuments()
+        .exec()) > 0;
+    const hasNextPosts =
+      (await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $gt: nextEndDate } })
+        .countDocuments()
+        .exec()) > 0;
+
+    res.status(200).json({
+      keywordId,
+      keyword: keywordInfo.keyword,
+      dates,
+      postLikeList,
+      cursorId: cursorIdDate,
+      previousCursorId,
+      nextCursorId,
+      hasPrevious: hasPreviousPosts,
+      hasNext: hasNextPosts,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.postLike'" });
+  }
+};
+
+module.exports = { upsert, list, today, postCount, postLike };
