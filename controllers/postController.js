@@ -363,7 +363,7 @@ const postLike = async (req, res) => {
     const postLikeList = postLikeResultList.map((item) => item.likeCount);
 
     const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+    const [nextStartDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
 
     const previousCursorId = new Date(previousStartDate);
     previousCursorId.setDate(previousStartDate.getDate() - 1);
