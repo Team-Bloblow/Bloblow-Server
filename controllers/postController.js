@@ -46,6 +46,9 @@ const list = async (req, res) => {
   if (!isValidString(req.query.includedKeyword)) {
     return res.status(400).send({ message: "[InvalidIncludedKeyword] Error occured" });
   }
+  if (!isValidString(req.query.excludedKeyword)) {
+    return res.status(400).send({ message: "[InvalidExcludedKeyword] Error occured" });
+  }
   if (!isValidNumber(Number(req.query.limit)) || Number(req.query.limit) <= 0) {
     return res.status(400).send({ message: "[InvalidLimit] Error occured" });
   }
@@ -57,7 +60,6 @@ const list = async (req, res) => {
   if (!hasKeywordId) {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
-
   if (!isEmptyString(req.query.cursorId)) {
     const hasCursorId = (await postModel.findOne({ _id: req.query.cursorId })) !== null;
     if (!hasCursorId) {
@@ -66,22 +68,32 @@ const list = async (req, res) => {
   }
 
   const keywordId = req.params.keywordId;
-  const { includedKeyword, cursorId } = req.query;
+  const { includedKeyword, excludedKeyword, cursorId } = req.query;
+  const includedKeywordList = includedKeyword.split(",").join("|");
+  const excludedKeywordList = excludedKeyword.split(",").join("|");
   const limit = Number(req.query.limit);
   let hasNext = false;
   let postListResult;
+  const contentFilter = isEmptyString(excludedKeywordList)
+    ? {
+        $regex: includedKeywordList,
+      }
+    : {
+        $regex: includedKeywordList,
+        $not: { $regex: excludedKeywordList },
+      };
 
   try {
     if (isEmptyString(cursorId)) {
       postListResult = await postModel
         .find({ keywordId })
-        .find({ content: { $regex: includedKeyword } })
+        .find({ content: contentFilter })
         .sort({ _id: -1 })
         .limit(limit);
     } else {
       postListResult = await postModel
         .find({ keywordId })
-        .find({ content: { $regex: includedKeyword } })
+        .find({ content: contentFilter })
         .find({ _id: { $lt: cursorId } })
         .sort({ _id: -1 })
         .limit(limit);
@@ -89,8 +101,10 @@ const list = async (req, res) => {
 
     const nextCursorId = postListResult[postListResult.length - 1]?._id;
     const nextPostResult = await postModel
-      .find({ keywordId: keywordId })
-      .find({ content: { $regex: includedKeyword } })
+      .find({ keywordId })
+      .find({
+        content: contentFilter,
+      })
       .findOne({ _id: { $lt: nextCursorId } });
 
     if (nextPostResult !== null) {

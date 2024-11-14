@@ -12,10 +12,10 @@ const keywordSchema = new Schema(
       required: true,
     },
     includedKeyword: {
-      type: Array,
+      type: String,
     },
     excludedKeyword: {
-      type: Array,
+      type: String,
     },
   },
   {
