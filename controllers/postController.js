@@ -316,8 +316,9 @@ const groupPostCount = async (req, res) => {
   if (isValidString(req.query.cursorId)) {
     if (isEmptyString(req.query.cursorId)) {
       cursorIdDate = new Date();
-      cursorIdDate.setHours(0, 0, 0, 0);
       cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate = cursorIdDate.toISOString();
     } else {
       cursorIdDate = req.query.cursorId;
     }
@@ -460,8 +461,9 @@ const groupLikeCount = async (req, res) => {
   if (isValidString(req.query.cursorId)) {
     if (isEmptyString(req.query.cursorId)) {
       cursorIdDate = new Date();
-      cursorIdDate.setHours(0, 0, 0, 0);
       cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate = cursorIdDate.toISOString();
     } else {
       cursorIdDate = req.query.cursorId;
     }
@@ -604,8 +606,9 @@ const groupCommentCount = async (req, res) => {
   if (isValidString(req.query.cursorId)) {
     if (isEmptyString(req.query.cursorId)) {
       cursorIdDate = new Date();
-      cursorIdDate.setHours(0, 0, 0, 0);
       cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate = cursorIdDate.toISOString();
     } else {
       cursorIdDate = req.query.cursorId;
     }
