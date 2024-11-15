@@ -8,5 +8,7 @@ router.get("/keywords/:keywordId/postLike", postController.postLike);
 router.get("/keywords/:keywordId/postComment", postController.postComment);
 router.get("/:keywordId", postController.list);
 router.get("/groups/:groupId/postCount", postController.groupPostCount);
+router.get("/groups/:groupId/likeCount", postController.groupLikeCount);
+router.get("/groups/:groupId/commentCount", postController.groupCommentCount);
 
 module.exports = router;

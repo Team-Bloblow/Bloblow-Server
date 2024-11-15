@@ -521,4 +521,301 @@ const postComment = async (req, res) => {
   }
 };
 
+const groupLikeCount = async (req, res) => {
+  if (!isValidString(req.params.groupId) || isEmptyString(req.params.groupId)) {
+    return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+  }
+
+  const groupInfo = await groupModel.findOne({ _id: req.params.groupId }).exec();
+  if (groupInfo === null) {
+    return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+  }
+
+  const groupId = req.params.groupId;
+
+  let cursorIdDate;
+  if (isValidString(req.query.cursorId)) {
+    if (isEmptyString(req.query.cursorId)) {
+      cursorIdDate = new Date();
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+    } else {
+      cursorIdDate = req.query.cursorId;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
+  }
+
+  try {
+    const group = await groupModel.findById(groupId).exec();
+    const keywordIdList = group.keywordIdList;
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate);
+
+    let allKeywordsResult = [];
+
+    for await (const keywordId of keywordIdList) {
+      const stringifiedKeywordId = keywordId.toString();
+      const keywordResult = await postModel.aggregate([
+        { $match: { keywordId: stringifiedKeywordId } },
+        {
+          $match: {
+            $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+            likeCount: { $sum: "$likeCount" },
+          },
+        },
+        { $addFields: { date: "$_id" } },
+        { $project: { _id: 0 } },
+      ]);
+
+      if (keywordResult.length < DAY_OF_WEEK) {
+        let index = 0;
+
+        while (index < DAY_OF_WEEK) {
+          const targetDate = new Date(cursorIdDate);
+          targetDate.setDate(targetDate.getDate() + index + 1);
+          const transformedTargetMonth =
+            (targetDate.getMonth() + 1).toString().length === 1
+              ? (targetDate.getMonth() + 1).toString().padStart(2, "0")
+              : (targetDate.getMonth() + 1).toString();
+          const transformedTargetDate =
+            targetDate.getDate().toString().length === 1
+              ? targetDate.getDate().toString().padStart(2, "0")
+              : targetDate.getDate().toString();
+          const targetDateString = `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
+
+          const hasTargetDate = keywordResult.some((result) => result.date === targetDateString);
+          if (!hasTargetDate) {
+            keywordResult.push({
+              likeCount: 0,
+              date: targetDateString,
+            });
+          }
+
+          index += 1;
+        }
+      }
+
+      keywordResult.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const keyword = await keywordModel.findOne({ _id: keywordId }).exec();
+      const keywordName = keyword.keyword;
+      const likeCountList = keywordResult.map((item) => item.likeCount);
+      const dates = keywordResult.map((item) => item.date);
+
+      allKeywordsResult.push({
+        name: keywordName,
+        likeCountList,
+        dates,
+      });
+    }
+
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+
+    const previousCursorId = new Date(previousStartDate);
+    previousCursorId.setDate(previousStartDate.getDate() - 1);
+    const nextCursorId = new Date(nextStartDate);
+    nextCursorId.setDate(nextStartDate.getDate() - 1);
+
+    let previousKeywordsPostsNum = [];
+    for await (const keywordId of keywordIdList) {
+      const previousKeywordPostsNum = await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $lte: previousEndDate } })
+        .countDocuments()
+        .exec();
+
+      previousKeywordsPostsNum.push(previousKeywordPostsNum);
+    }
+
+    const hasPreviousPosts = previousKeywordsPostsNum.some((postNum) => postNum > 0);
+
+    let nextKeywordsPostsNum = [];
+    for await (const keywordId of keywordIdList) {
+      const nextKeywordPostsNum = await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $gte: nextStartDate } })
+        .countDocuments()
+        .exec();
+
+      nextKeywordsPostsNum.push(nextKeywordPostsNum);
+    }
+
+    const hasNextPosts = nextKeywordsPostsNum.some((postNum) => postNum > 0);
+
+    return res.status(200).json({
+      groupId,
+      keywordIdList,
+      items: allKeywordsResult,
+      hasPrevious: hasPreviousPosts,
+      hasNext: hasNextPosts,
+      cursorId: cursorIdDate,
+      previousCursorId,
+      nextCursorId,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.groupLikeCount'" });
+  }
+};
+
+const groupCommentCount = async (req, res) => {
+  if (!isValidString(req.params.groupId) || isEmptyString(req.params.groupId)) {
+    return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+  }
+
+  const groupInfo = await groupModel.findOne({ _id: req.params.groupId }).exec();
+  if (groupInfo === null) {
+    return res.status(400).send({ message: "[NotExistedGroupId] Error occured" });
+  }
+
+  const groupId = req.params.groupId;
+
+  let cursorIdDate;
+  if (isValidString(req.query.cursorId)) {
+    if (isEmptyString(req.query.cursorId)) {
+      cursorIdDate = new Date();
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+    } else {
+      cursorIdDate = req.query.cursorId;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
+  }
+
+  try {
+    const group = await groupModel.findById(groupId).exec();
+    const keywordIdList = group.keywordIdList;
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate);
+
+    let allKeywordsResult = [];
+
+    for await (const keywordId of keywordIdList) {
+      const stringifiedKeywordId = keywordId.toString();
+      const keywordResult = await postModel.aggregate([
+        { $match: { keywordId: stringifiedKeywordId } },
+        {
+          $match: {
+            $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+            commentCount: { $sum: "$commentCount" },
+          },
+        },
+        { $addFields: { date: "$_id" } },
+        { $project: { _id: 0 } },
+      ]);
+
+      if (keywordResult.length < DAY_OF_WEEK) {
+        let index = 0;
+
+        while (index < DAY_OF_WEEK) {
+          const targetDate = new Date(cursorIdDate);
+          targetDate.setDate(targetDate.getDate() + index + 1);
+          const transformedTargetMonth =
+            (targetDate.getMonth() + 1).toString().length === 1
+              ? (targetDate.getMonth() + 1).toString().padStart(2, "0")
+              : (targetDate.getMonth() + 1).toString();
+          const transformedTargetDate =
+            targetDate.getDate().toString().length === 1
+              ? targetDate.getDate().toString().padStart(2, "0")
+              : targetDate.getDate().toString();
+          const targetDateString = `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
+
+          const hasTargetDate = keywordResult.some((result) => result.date === targetDateString);
+          if (!hasTargetDate) {
+            keywordResult.push({
+              commentCount: 0,
+              date: targetDateString,
+            });
+          }
+
+          index += 1;
+        }
+      }
+
+      keywordResult.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const keyword = await keywordModel.findOne({ _id: keywordId }).exec();
+      const keywordName = keyword.keyword;
+      const commentCountList = keywordResult.map((item) => item.commentCount);
+      const dates = keywordResult.map((item) => item.date);
+
+      allKeywordsResult.push({
+        name: keywordName,
+        commentCountList,
+        dates,
+      });
+    }
+
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+
+    const previousCursorId = new Date(previousStartDate);
+    previousCursorId.setDate(previousStartDate.getDate() - 1);
+    const nextCursorId = new Date(nextStartDate);
+    nextCursorId.setDate(nextStartDate.getDate() - 1);
+
+    let previousKeywordsPostsNum = [];
+    for await (const keywordId of keywordIdList) {
+      const previousKeywordPostsNum = await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $lte: previousEndDate } })
+        .countDocuments()
+        .exec();
+
+      previousKeywordsPostsNum.push(previousKeywordPostsNum);
+    }
+
+    const hasPreviousPosts = previousKeywordsPostsNum.some((postNum) => postNum > 0);
+
+    let nextKeywordsPostsNum = [];
+    for await (const keywordId of keywordIdList) {
+      const nextKeywordPostsNum = await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $gte: nextStartDate } })
+        .countDocuments()
+        .exec();
+
+      nextKeywordsPostsNum.push(nextKeywordPostsNum);
+    }
+
+    const hasNextPosts = nextKeywordsPostsNum.some((postNum) => postNum > 0);
+
+    return res.status(200).json({
+      groupId,
+      keywordIdList,
+      items: allKeywordsResult,
+      hasPrevious: hasPreviousPosts,
+      hasNext: hasNextPosts,
+      cursorId: cursorIdDate,
+      previousCursorId,
+      nextCursorId,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.groupCommentCount'" });
+  }
+};
+
+module.exports = {
+  upsert,
+  list,
+  today,
+  postCount,
+  groupPostCount,
+  groupLikeCount,
+  groupCommentCount,
+};
 module.exports = { upsert, list, today, postCount, postLike, postComment };
