@@ -564,7 +564,7 @@ const groupLikeCount = async (req, res) => {
         },
         {
           $group: {
-            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09" } },
             likeCount: { $sum: "$likeCount" },
           },
         },
@@ -708,7 +708,7 @@ const groupCommentCount = async (req, res) => {
         },
         {
           $group: {
-            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+            _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09" } },
             commentCount: { $sum: "$commentCount" },
           },
         },
