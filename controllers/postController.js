@@ -576,7 +576,10 @@ const groupPostCount = async (req, res) => {
         { $match: { keywordId: stringifiedKeywordId } },
         {
           $match: {
-            $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
+            $and: [
+              { createdAt: { $gte: cursorStartDate } },
+              { createdAt: { $lte: cursorEndDate } },
+            ],
           },
         },
         {
@@ -721,7 +724,10 @@ const groupLikeCount = async (req, res) => {
         { $match: { keywordId: stringifiedKeywordId } },
         {
           $match: {
-            $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
+            $and: [
+              { createdAt: { $gte: cursorStartDate } },
+              { createdAt: { $lte: cursorEndDate } },
+            ],
           },
         },
         {
@@ -866,7 +872,10 @@ const groupCommentCount = async (req, res) => {
         { $match: { keywordId: stringifiedKeywordId } },
         {
           $match: {
-            $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
+            $and: [
+              { createdAt: { $gte: cursorStartDate } },
+              { createdAt: { $lte: cursorEndDate } },
+            ],
           },
         },
         {
