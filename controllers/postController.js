@@ -201,7 +201,6 @@ const postCount = async (req, res) => {
           postCount: { $sum: 1 },
         },
       },
-      { $sort: { _id: 1 } },
       { $addFields: { date: "$_id" } },
       { $project: { _id: 0 } },
     ]);
@@ -317,7 +316,6 @@ const postLike = async (req, res) => {
           likeCount: { $sum: "$likeCount" },
         },
       },
-      { $sort: { _id: 1 } },
       { $addFields: { date: "$_id" } },
       { $project: { _id: 0 } },
     ]);
@@ -430,7 +428,6 @@ const postComment = async (req, res) => {
           commentCount: { $sum: "$commentCount" },
         },
       },
-      { $sort: { _id: 1 } },
       { $addFields: { date: "$_id" } },
       { $project: { _id: 0 } },
     ]);
