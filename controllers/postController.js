@@ -192,12 +192,12 @@ const postCount = async (req, res) => {
       { $match: { keywordId } },
       {
         $match: {
-          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
         },
       },
       {
         $group: {
-          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
           postCount: { $sum: 1 },
         },
       },
@@ -308,12 +308,12 @@ const postLike = async (req, res) => {
       { $match: { keywordId } },
       {
         $match: {
-          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
         },
       },
       {
         $group: {
-          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
           likeCount: { $sum: "$likeCount" },
         },
       },
@@ -421,12 +421,12 @@ const postComment = async (req, res) => {
       { $match: { keywordId } },
       {
         $match: {
-          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lt: cursorEndDate } }],
+          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
         },
       },
       {
         $group: {
-          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d" } },
+          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
           commentCount: { $sum: "$commentCount" },
         },
       },
