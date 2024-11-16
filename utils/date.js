@@ -22,4 +22,21 @@ const getCursorWeek = (cursorIdDate, addDay = 0) => {
   return [startDate, endDate];
 };
 
-module.exports = { isToday, getCursorWeek };
+const getTargetDateString = (date, addDay = 0) => {
+  const targetDate = new Date(date);
+  targetDate.setDate(targetDate.getDate() + addDay);
+
+  const transformedTargetMonth =
+    (targetDate.getMonth() + 1).toString().length === 1
+      ? (targetDate.getMonth() + 1).toString().padStart(2, "0")
+      : (targetDate.getMonth() + 1).toString();
+
+  const transformedTargetDate =
+    targetDate.getDate().toString().length === 1
+      ? targetDate.getDate().toString().padStart(2, "0")
+      : targetDate.getDate().toString();
+
+  return `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
+};
+
+module.exports = { isToday, getCursorWeek, getTargetDateString };

@@ -6,7 +6,7 @@ const {
   isEmptyString,
   isValidBoolean,
 } = require("../utils/validation");
-const { getCursorWeek } = require("../utils/date");
+const { getCursorWeek, getTargetDateString } = require("../utils/date");
 const { DAY_OF_WEEK } = require("../config/constants");
 const groupModel = require("../models/groupModel");
 
@@ -297,7 +297,7 @@ const postCount = async (req, res) => {
   }
 };
 
-const postLike = async (req, res) => {
+const reactionCount = async (req, res) => {
   if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
@@ -326,7 +326,7 @@ const postLike = async (req, res) => {
   try {
     const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
 
-    const postLikeResultList = await postModel.aggregate([
+    const reactionCountListByPeriod = await postModel.aggregate([
       { $match: { keywordId } },
       {
         $match: {
@@ -337,125 +337,6 @@ const postLike = async (req, res) => {
         $group: {
           _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
           likeCount: { $sum: "$likeCount" },
-        },
-      },
-      { $addFields: { date: "$_id" } },
-      { $project: { _id: 0 } },
-    ]);
-
-    if (postLikeResultList.length < DAY_OF_WEEK) {
-      let index = 0;
-
-      while (index < DAY_OF_WEEK) {
-        const targetDate = new Date(cursorStartDate);
-        targetDate.setDate(targetDate.getDate() + index);
-        const transformedTargetMonth =
-          (targetDate.getMonth() + 1).toString().length === 1
-            ? (targetDate.getMonth() + 1).toString().padStart(2, "0")
-            : (targetDate.getMonth() + 1).toString();
-        const transformedTargetDate =
-          targetDate.getDate().toString().length === 1
-            ? targetDate.getDate().toString().padStart(2, "0")
-            : targetDate.getDate().toString();
-        const targetDateString = `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
-
-        const hasTargetDate = postLikeResultList
-          .map((item) => item.date)
-          .some((date) => date === targetDateString);
-
-        if (!hasTargetDate) {
-          postLikeResultList.push({
-            likeCount: 0,
-            date: targetDateString,
-          });
-        }
-
-        index += 1;
-      }
-    }
-
-    postLikeResultList.sort((a, b) => new Date(a.date) - new Date(b.date));
-    const dates = postLikeResultList.map((item) => item.date);
-    const postLikeList = postLikeResultList.map((item) => item.likeCount);
-
-    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
-
-    const previousCursorId = new Date(previousStartDate);
-    previousCursorId.setDate(previousStartDate.getDate() - 1);
-    const nextCursorId = new Date(nextStartDate);
-    nextCursorId.setDate(nextCursorId.getDate() - 1);
-
-    const hasPreviousPosts =
-      (await postModel
-        .find({ keywordId })
-        .find({ createdAt: { $lte: previousEndDate } })
-        .countDocuments()
-        .exec()) > 0;
-    const hasNextPosts =
-      (await postModel
-        .find({ keywordId })
-        .find({ createdAt: { $gte: nextStartDate } })
-        .countDocuments()
-        .exec()) > 0;
-
-    res.status(200).json({
-      keywordId,
-      keyword: keywordInfo.keyword,
-      dates,
-      postLikeList,
-      cursorId: cursorIdDate,
-      previousCursorId,
-      nextCursorId,
-      hasPrevious: hasPreviousPosts,
-      hasNext: hasNextPosts,
-    });
-  } catch {
-    return res
-      .status(500)
-      .send({ message: "[ServerError] Error occured in 'postController.postLike'" });
-  }
-};
-
-const postComment = async (req, res) => {
-  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
-    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
-  }
-
-  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
-  if (keywordInfo === null) {
-    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
-  }
-
-  let cursorIdDate;
-  if (isValidString(req.query.cursorId)) {
-    if (isEmptyString(req.query.cursorId)) {
-      cursorIdDate = new Date();
-      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
-      cursorIdDate.setHours(0, 0, 0, 0);
-      cursorIdDate = cursorIdDate.toISOString();
-    } else {
-      cursorIdDate = req.query.cursorId;
-    }
-  } else {
-    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
-  }
-
-  const keywordId = req.params.keywordId;
-
-  try {
-    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
-
-    const postCommentResultList = await postModel.aggregate([
-      { $match: { keywordId } },
-      {
-        $match: {
-          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
-        },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
           commentCount: { $sum: "$commentCount" },
         },
       },
@@ -463,28 +344,18 @@ const postComment = async (req, res) => {
       { $project: { _id: 0 } },
     ]);
 
-    if (postCommentResultList.length < DAY_OF_WEEK) {
+    if (reactionCountListByPeriod.length < DAY_OF_WEEK) {
       let index = 0;
 
       while (index < DAY_OF_WEEK) {
-        const targetDate = new Date(cursorStartDate);
-        targetDate.setDate(targetDate.getDate() + index);
-        const transformedTargetMonth =
-          (targetDate.getMonth() + 1).toString().length === 1
-            ? (targetDate.getMonth() + 1).toString().padStart(2, "0")
-            : (targetDate.getMonth() + 1).toString();
-        const transformedTargetDate =
-          targetDate.getDate().toString().length === 1
-            ? targetDate.getDate().toString().padStart(2, "0")
-            : targetDate.getDate().toString();
-        const targetDateString = `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
-
-        const hasTargetDate = postCommentResultList
+        const targetDateString = getTargetDateString(cursorStartDate, index);
+        const hasTargetDate = reactionCountListByPeriod
           .map((item) => item.date)
           .some((date) => date === targetDateString);
 
         if (!hasTargetDate) {
-          postCommentResultList.push({
+          reactionCountListByPeriod.push({
+            likeCount: 0,
             commentCount: 0,
             date: targetDateString,
           });
@@ -494,9 +365,11 @@ const postComment = async (req, res) => {
       }
     }
 
-    postCommentResultList.sort((a, b) => new Date(a.date) - new Date(b.date));
-    const dates = postCommentResultList.map((item) => item.date);
-    const postCommentList = postCommentResultList.map((item) => item.commentCount);
+    reactionCountListByPeriod.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const dates = reactionCountListByPeriod.map((item) => item.date);
+    const likeCountList = reactionCountListByPeriod.map((item) => item.likeCount);
+    const commentCountList = reactionCountListByPeriod.map((item) => item.commentCount);
 
     const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
     const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
@@ -523,7 +396,7 @@ const postComment = async (req, res) => {
       keywordId,
       keyword: keywordInfo.keyword,
       dates,
-      postCommentList,
+      items: { likeCountList, commentCountList },
       cursorId: cursorIdDate,
       previousCursorId,
       nextCursorId,
@@ -533,7 +406,7 @@ const postComment = async (req, res) => {
   } catch {
     return res
       .status(500)
-      .send({ message: "[ServerError] Error occured in 'postController.postComment'" });
+      .send({ message: "[ServerError] Error occured in 'postController.reactionCount'" });
   }
 };
 
@@ -986,8 +859,7 @@ module.exports = {
   list,
   today,
   postCount,
-  postLike,
-  postComment,
+  reactionCount,
   groupPostCount,
   groupLikeCount,
   groupCommentCount,
