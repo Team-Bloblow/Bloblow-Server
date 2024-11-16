@@ -6,8 +6,13 @@ const {
   isEmptyString,
   isValidBoolean,
 } = require("../utils/validation");
-const { getCursorWeek, getTargetDateString } = require("../utils/date");
-const { DAY_OF_WEEK } = require("../config/constants");
+const {
+  getCursorIdDate,
+  getCursorWeek,
+  getCursorPeriod,
+  getTargetDateString,
+} = require("../utils/date");
+const { DAY_OF_WEEK, PERIOD, MONTH } = require("../config/constants");
 const groupModel = require("../models/groupModel");
 
 const upsert = async (req) => {
@@ -184,15 +189,12 @@ const postCount = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
-  const keywordId = req.params.keywordId;
+  const period = req.query.period ?? "weekly";
 
   let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
     if (isEmptyString(req.query.cursorId)) {
-      cursorIdDate = new Date();
-      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
-      cursorIdDate.setHours(0, 0, 0, 0);
-      cursorIdDate = cursorIdDate.toISOString();
+      cursorIdDate = getCursorIdDate(period);
     } else {
       cursorIdDate = req.query.cursorId;
     }
@@ -200,10 +202,12 @@ const postCount = async (req, res) => {
     return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
   }
 
-  try {
-    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate);
+  const keywordId = req.params.keywordId;
 
-    const result = await postModel.aggregate([
+  try {
+    const [cursorStartDate, cursorEndDate, periodLength] = getCursorPeriod(cursorIdDate, period);
+
+    const postCountListByPeriod = await postModel.aggregate([
       { $match: { keywordId } },
       {
         $match: {
@@ -220,27 +224,17 @@ const postCount = async (req, res) => {
       { $project: { _id: 0 } },
     ]);
 
-    if (result.length < DAY_OF_WEEK) {
+    if (postCountListByPeriod.length < periodLength) {
       let index = 0;
 
-      while (index < DAY_OF_WEEK) {
-        const targetDate = new Date(cursorStartDate);
-        targetDate.setDate(targetDate.getDate() + index);
-        const transformedTargetMonth =
-          (targetDate.getMonth() + 1).toString().length === 1
-            ? (targetDate.getMonth() + 1).toString().padStart(2, "0")
-            : (targetDate.getMonth() + 1).toString();
-        const transformedTargetDate =
-          targetDate.getDate().toString().length === 1
-            ? targetDate.getDate().toString().padStart(2, "0")
-            : targetDate.getDate().toString();
-        const targetDateString = `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
-
-        const hasTargetDate = result
+      while (index < periodLength) {
+        const targetDateString = getTargetDateString(cursorStartDate, index);
+        const hasTargetDate = postCountListByPeriod
           .map((item) => item.date)
           .some((date) => date === targetDateString);
+
         if (!hasTargetDate) {
-          result.push({
+          postCountListByPeriod.push({
             postCount: 0,
             date: targetDateString,
           });
@@ -250,12 +244,14 @@ const postCount = async (req, res) => {
       }
     }
 
-    result.sort((a, b) => new Date(a.date) - new Date(b.date));
-    const dates = result.map((item) => item.date);
-    const postCountList = result.map((item) => item.postCount);
+    postCountListByPeriod.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+    const dates = postCountListByPeriod.map((item) => item.date);
+    const postCountList = postCountListByPeriod.map((item) => item.postCount);
+
+    const addPeriod = period === PERIOD.WEEKLY ? DAY_OF_WEEK : MONTH;
+    const [previousStartDate, previousEndDate] = getCursorPeriod(cursorIdDate, period, -addPeriod);
+    const [nextStartDate, nextEndDate] = getCursorPeriod(cursorIdDate, period, +addPeriod);
 
     const previousCursorId = new Date(previousStartDate);
     previousCursorId.setDate(previousStartDate.getDate() - 1);
