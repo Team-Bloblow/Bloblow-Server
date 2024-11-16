@@ -11,48 +11,14 @@ const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 const PUPPETEER_SERVER_URL = process.env.PUPPETEER_SERVER_URL;
 
 const getPostCrawlingData = async (post) => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--single-process",
-      "--no-zygote",
-    ],
-    ignoreHTTPSErrors: true,
-  });
   try {
-    console.log("start crawling");
-    const page = await browser.newPage();
+    const fetchInfo = {
+      url: `${PUPPETEER_SERVER_URL}/crawl/posts/${post.link}`,
+      method: "GET",
+    };
 
-    console.log(browser, page);
-
-    await page.setViewport({ width: 1080, height: 1024 });
-    await page.setUserAgent(
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-    );
-    await page.goto(post.link);
-    await page.waitForSelector("iframe");
-
-    const iframeURL = await page.evaluate(() => document.querySelector("iframe").src);
-
-    await page.goto(iframeURL);
-    await page.waitForNetworkIdle();
-
-    const content = await page.evaluate(() =>
-      JSON.stringify(document.querySelector(".se-main-container").textContent)
-    );
-    const commentCount = await page.evaluate(
-      () => parseInt(document.querySelector("._commentCount").innerText.trim()) || 0
-    );
-    const likeCount = await page.evaluate(
-      () => parseInt(document.querySelector(".u_cnt._count").innerText.trim()) || 0
-    );
-    const isAd = await Promise.resolve(
-      validateAdKeyword.some((adKeyword) => content.includes(adKeyword))
-    );
+    const response = await fetchHandler(fetchInfo);
+    const { content, likeCount, commentCount, isAd } = response;
 
     return {
       title: sanitizeHtmlEntity(post.title),
@@ -65,8 +31,6 @@ const getPostCrawlingData = async (post) => {
     };
   } catch (err) {
     console.error(err);
-  } finally {
-    await browser.close();
   }
 };
 
