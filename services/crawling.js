@@ -13,7 +13,14 @@ const PUPPETEER_SERVER_URL = process.env.PUPPETEER_SERVER_URL;
 const getPostCrawlingData = async (post) => {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--no-zygote"],
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--single-process",
+      "--no-zygote",
+    ],
     ignoreHTTPSErrors: true,
   });
   try {
