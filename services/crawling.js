@@ -13,7 +13,7 @@ const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 const getPostCrawlingData = async (post) => {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--single-process", "--no-zygote"],
     ignoreHTTPSErrors: true,
   });
   try {
