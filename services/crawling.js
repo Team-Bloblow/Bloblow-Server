@@ -11,19 +11,16 @@ const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
 const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 
 const getPostCrawlingData = async (post) => {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+    ignoreHTTPSErrors: true,
+  });
   try {
     console.log("start crawling");
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-      ignoreHTTPSErrors: true,
-    });
     const page = await browser.newPage();
+
+    console.log(browser, page);
 
     await page.setViewport({ width: 1080, height: 1024 });
     await page.setUserAgent(
@@ -50,8 +47,6 @@ const getPostCrawlingData = async (post) => {
       validateAdKeyword.some((adKeyword) => content.includes(adKeyword))
     );
 
-    await browser.close();
-
     return {
       title: sanitizeHtmlEntity(post.title),
       link: post.link,
@@ -62,7 +57,9 @@ const getPostCrawlingData = async (post) => {
       isAd,
     };
   } catch (err) {
-    console.err(err);
+    console.error(err);
+  } finally {
+    await browser.close();
   }
 };
 
