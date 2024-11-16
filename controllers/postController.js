@@ -410,6 +410,123 @@ const reactionCount = async (req, res) => {
   }
 };
 
+const adCount = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
+  if (keywordInfo === null) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  let cursorIdDate;
+  if (isValidString(req.query.cursorId)) {
+    if (isEmptyString(req.query.cursorId)) {
+      cursorIdDate = new Date();
+      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
+      cursorIdDate.setHours(0, 0, 0, 0);
+      cursorIdDate = cursorIdDate.toISOString();
+    } else {
+      cursorIdDate = req.query.cursorId;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidCursorId] Error occured" });
+  }
+
+  const keywordId = req.params.keywordId;
+
+  try {
+    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
+
+    const adCountListByUnit = await postModel.aggregate([
+      { $match: { keywordId } },
+      {
+        $match: {
+          $and: [{ createdAt: { $gte: cursorStartDate } }, { createdAt: { $lte: cursorEndDate } }],
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
+          adCount: {
+            $sum: { $cond: { if: { $eq: ["$isAd", true] }, then: 1, else: 0 } },
+          },
+          nonAdCount: {
+            $sum: { $cond: { if: { $eq: ["$isAd", false] }, then: 1, else: 0 } },
+          },
+        },
+      },
+      { $addFields: { date: "$_id" } },
+      { $project: { _id: 0 } },
+    ]);
+
+    if (adCountListByUnit.length < DAY_OF_WEEK) {
+      let index = 0;
+
+      while (index < DAY_OF_WEEK) {
+        const targetDateString = getTargetDateString(cursorStartDate, index);
+        const hasTargetDate = adCountListByUnit
+          .map((item) => item.date)
+          .some((date) => date === targetDateString);
+
+        if (!hasTargetDate) {
+          adCountListByUnit.push({
+            adCount: 0,
+            nonAdCount: 0,
+            date: targetDateString,
+          });
+        }
+
+        index += 1;
+      }
+    }
+
+    adCountListByUnit.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const dates = adCountListByUnit.map((item) => item.date);
+    const adCountList = adCountListByUnit.map((item) => item.adCount);
+    const nonAdCountList = adCountListByUnit.map((item) => item.nonAdCount);
+
+    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
+    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+
+    const previousCursorId = new Date(previousStartDate);
+    previousCursorId.setDate(previousStartDate.getDate() - 1);
+    const nextCursorId = new Date(nextStartDate);
+    nextCursorId.setDate(nextCursorId.getDate() - 1);
+
+    const hasPreviousPosts =
+      (await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $lte: previousEndDate } })
+        .countDocuments()
+        .exec()) > 0;
+    const hasNextPosts =
+      (await postModel
+        .find({ keywordId })
+        .find({ createdAt: { $gte: nextStartDate } })
+        .countDocuments()
+        .exec()) > 0;
+
+    res.status(200).json({
+      keywordId,
+      keyword: keywordInfo.keyword,
+      dates,
+      items: { nonAdCountList, adCountList },
+      cursorId: cursorIdDate,
+      previousCursorId,
+      nextCursorId,
+      hasPrevious: hasPreviousPosts,
+      hasNext: hasNextPosts,
+    });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'postController.adCount'" });
+  }
+};
+
 const groupPostCount = async (req, res) => {
   if (!isValidString(req.params.groupId) || isEmptyString(req.params.groupId)) {
     return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
@@ -860,6 +977,7 @@ module.exports = {
   today,
   postCount,
   reactionCount,
+  adCount,
   groupPostCount,
   groupLikeCount,
   groupCommentCount,
