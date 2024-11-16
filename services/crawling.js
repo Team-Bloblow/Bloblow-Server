@@ -11,18 +11,46 @@ const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 const PUPPETEER_SERVER_URL = process.env.PUPPETEER_SERVER_URL;
 
 const getPostCrawlingData = async (post) => {
-  const postLink = post.link;
-  const encodedPostLink = encodeURIComponent(postLink);
-
   try {
-    const fetchInfo = {
-      url: `${PUPPETEER_SERVER_URL}/crawl/posts`,
-      method: "GET",
-      params: `?postLink=${encodedPostLink}`,
-    };
+    console.log("start crawling");
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+      ],
+      ignoreHTTPSErrors: true,
+    });
+    const page = await browser.newPage();
 
-    const response = await fetchHandler(fetchInfo);
-    const { content, likeCount, commentCount, isAd } = response;
+    await page.setViewport({ width: 1080, height: 1024 });
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    );
+    await page.goto(post.link);
+    await page.waitForSelector("iframe");
+
+    const iframeURL = await page.evaluate(() => document.querySelector("iframe").src);
+
+    await page.goto(iframeURL);
+    await page.waitForNetworkIdle();
+
+    const content = await page.evaluate(() =>
+      JSON.stringify(document.querySelector(".se-main-container").textContent)
+    );
+    const commentCount = await page.evaluate(
+      () => parseInt(document.querySelector("._commentCount").innerText.trim()) || 0
+    );
+    const likeCount = await page.evaluate(
+      () => parseInt(document.querySelector(".u_cnt._count").innerText.trim()) || 0
+    );
+    const isAd = await Promise.resolve(
+      validateAdKeyword.some((adKeyword) => content.includes(adKeyword))
+    );
+
+    await browser.close();
 
     return {
       title: sanitizeHtmlEntity(post.title),
@@ -77,9 +105,9 @@ const getKeywordPostList = async (keyword, keywordId) => {
         break;
       }
 
-      const dataList = data.items.filter(
-        (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
-      );
+    const dataList = data.items.filter(
+      (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
+    );
 
       const postList = Promise.allSettled
         ? await Promise.allSettled(dataList.map((data) => getPostCrawlingData(data)))
