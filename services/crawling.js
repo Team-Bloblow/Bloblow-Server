@@ -13,8 +13,9 @@ const PUPPETEER_SERVER_URL = process.env.PUPPETEER_SERVER_URL;
 const getPostCrawlingData = async (post) => {
   try {
     const fetchInfo = {
-      url: `https://bloblow-puppeteer.onrender.com/crawl/posts/${post.link}`,
+      url: `${PUPPETEER_SERVER_URL}/crawl/posts`,
       method: "GET",
+      params: `?postLink=${post.link}`,
     };
 
     const response = await fetchHandler(fetchInfo);
