@@ -11,11 +11,14 @@ const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 const PUPPETEER_SERVER_URL = process.env.PUPPETEER_SERVER_URL;
 
 const getPostCrawlingData = async (post) => {
+  const postLink = post.link;
+  const encodedPostLink = encodeURIComponent(postLink);
+
   try {
     const fetchInfo = {
       url: `${PUPPETEER_SERVER_URL}/crawl/posts`,
       method: "GET",
-      params: `?postLink=${post.link}`,
+      params: `?postLink=${encodedPostLink}`,
     };
 
     const response = await fetchHandler(fetchInfo);
