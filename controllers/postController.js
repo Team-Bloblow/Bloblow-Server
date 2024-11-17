@@ -152,7 +152,7 @@ const today = async (req, res) => {
       .find({
         createdAt: {
           $gte: new Date().setHours(0, 0, 0, 0),
-          $lt: new Date().setHours(23, 59, 59, 999),
+          $lte: new Date().setHours(23, 59, 59, 999),
         },
       })
       .countDocuments()
@@ -162,7 +162,7 @@ const today = async (req, res) => {
       .find({
         createdAt: {
           $gte: new Date(yesterday).setHours(0, 0, 0, 0),
-          $lt: new Date(yesterday).setHours(23, 59, 59, 999),
+          $lte: new Date(yesterday).setHours(23, 59, 59, 999),
         },
       })
       .countDocuments()
