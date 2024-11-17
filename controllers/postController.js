@@ -323,16 +323,27 @@ const reactionCount = async (req, res) => {
 
   const keywordInfo = await keywordModel.findOne({ _id: req.params.keywordId }).exec();
   if (keywordInfo === null) {
-    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
+
+  const period = req.query.period ?? "weekly";
+  /*
+  let period;
+  if (isValidString(req.query.period)) {
+    if (isEmptyString(req.query.period)) {
+      period = PERIOD.WEEKLY;
+    } else {
+      period = req.query.period;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidPeriod] Error occured" });
+  }
+  */
 
   let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
     if (isEmptyString(req.query.cursorId)) {
-      cursorIdDate = new Date();
-      cursorIdDate.setDate(cursorIdDate.getDate() - 1 - cursorIdDate.getDay());
-      cursorIdDate.setHours(0, 0, 0, 0);
-      cursorIdDate = cursorIdDate.toISOString();
+      cursorIdDate = getCursorIdDate(period);
     } else {
       cursorIdDate = req.query.cursorId;
     }
@@ -343,7 +354,19 @@ const reactionCount = async (req, res) => {
   const keywordId = req.params.keywordId;
 
   try {
-    const [cursorStartDate, cursorEndDate] = getCursorWeek(cursorIdDate, 0);
+    const [cursorStartDate, cursorEndDate, periodLength] = getCursorPeriod(cursorIdDate, period);
+    const dateFilter =
+      period === PERIOD.MONTHLY_WEEKLY
+        ? {
+            $dateTrunc: {
+              date: "$createdAt",
+              unit: "week",
+              binSize: 1,
+              timezone: "+09:00",
+              startOfWeek: "sunday",
+            },
+          }
+        : "$createdAt";
 
     const reactionCountListByPeriod = await postModel.aggregate([
       { $match: { keywordId } },
@@ -354,7 +377,13 @@ const reactionCount = async (req, res) => {
       },
       {
         $group: {
-          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
+          _id: {
+            $dateToString: {
+              date: dateFilter,
+              format: "%Y.%m.%d",
+              timezone: "+09:00",
+            },
+          },
           likeCount: { $sum: "$likeCount" },
           commentCount: { $sum: "$commentCount" },
         },
@@ -363,11 +392,12 @@ const reactionCount = async (req, res) => {
       { $project: { _id: 0 } },
     ]);
 
-    if (reactionCountListByPeriod.length < DAY_OF_WEEK) {
-      let index = 0;
+    if (reactionCountListByPeriod.length < periodLength) {
+      let addedDate = 0;
+      let periodUnit = period === PERIOD.MONTHLY_WEEKLY ? 7 : 1;
 
-      while (index < DAY_OF_WEEK) {
-        const targetDateString = getTargetDateString(cursorStartDate, index);
+      while (addedDate < DAY_OF_WEEK) {
+        const targetDateString = getTargetDateString(cursorStartDate, addedDate * periodUnit);
         const hasTargetDate = reactionCountListByPeriod
           .map((item) => item.date)
           .some((date) => date === targetDateString);
@@ -380,7 +410,7 @@ const reactionCount = async (req, res) => {
           });
         }
 
-        index += 1;
+        addedDate += 1;
       }
     }
 
@@ -390,24 +420,19 @@ const reactionCount = async (req, res) => {
     const likeCountList = reactionCountListByPeriod.map((item) => item.likeCount);
     const commentCountList = reactionCountListByPeriod.map((item) => item.commentCount);
 
-    const [previousStartDate, previousEndDate] = getCursorWeek(cursorIdDate, -DAY_OF_WEEK);
-    const [nextStartDate, nextEndDate] = getCursorWeek(cursorIdDate, +DAY_OF_WEEK);
+    const previousCursorId = getPreviousCursorIdDate(cursorStartDate, period);
+    const nextCursorId = getNextCursorIdDate(cursorEndDate);
 
-    const previousCursorId = new Date(previousStartDate);
-    previousCursorId.setDate(previousStartDate.getDate() - 1);
-    const nextCursorId = new Date(nextStartDate);
-    nextCursorId.setDate(nextCursorId.getDate() - 1);
-
-    const hasPreviousPosts =
+    const hasPrevious =
       (await postModel
         .find({ keywordId })
-        .find({ createdAt: { $lte: previousEndDate } })
+        .find({ createdAt: { $lt: cursorStartDate } })
         .countDocuments()
         .exec()) > 0;
-    const hasNextPosts =
+    const hasNext =
       (await postModel
         .find({ keywordId })
-        .find({ createdAt: { $gte: nextStartDate } })
+        .find({ createdAt: { $gt: cursorEndDate } })
         .countDocuments()
         .exec()) > 0;
 
@@ -419,8 +444,8 @@ const reactionCount = async (req, res) => {
       cursorId: cursorIdDate,
       previousCursorId,
       nextCursorId,
-      hasPrevious: hasPreviousPosts,
-      hasNext: hasNextPosts,
+      hasPrevious,
+      hasNext,
     });
   } catch {
     return res
