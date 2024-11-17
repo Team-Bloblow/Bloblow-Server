@@ -2,7 +2,7 @@ const { isToday } = require("../utils/date");
 const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../config/constants");
 const postController = require("../controllers/postController");
 const { sanitizeHtmlEntity } = require("../utils/sanitizeHtmlEntity");
-const { fetchHandler } =require("../utils/fetchHandler")
+const { fetchHandler } = require("../utils/fetchHandler");
 
 require("dotenv").config();
 
