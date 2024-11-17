@@ -11,8 +11,10 @@ const {
   getCursorWeek,
   getCursorPeriod,
   getTargetDateString,
+  getPreviousCursorIdDate,
+  getNextCursorIdDate,
 } = require("../utils/date");
-const { DAY_OF_WEEK, PERIOD, MONTH } = require("../config/constants");
+const { DAY_OF_WEEK, PERIOD } = require("../config/constants");
 const groupModel = require("../models/groupModel");
 
 const upsert = async (req) => {
@@ -189,7 +191,16 @@ const postCount = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
-  const period = req.query.period ?? "weekly";
+  let period;
+  if (isValidString(req.query.period)) {
+    if (isEmptyString(req.query.period)) {
+      period = PERIOD.WEEKLY;
+    } else {
+      period = req.query.period;
+    }
+  } else {
+    return res.status(400).send({ message: "[InvalidPeriod] Error occured" });
+  }
 
   let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
@@ -206,6 +217,18 @@ const postCount = async (req, res) => {
 
   try {
     const [cursorStartDate, cursorEndDate, periodLength] = getCursorPeriod(cursorIdDate, period);
+    const dateFilter =
+      period === PERIOD.MONTHLY_WEEKLY
+        ? {
+            $dateTrunc: {
+              date: "$createdAt",
+              unit: "week",
+              binSize: 1,
+              timezone: "+09:00",
+              startOfWeek: "sunday",
+            },
+          }
+        : "$createdAt";
 
     const postCountListByPeriod = await postModel.aggregate([
       { $match: { keywordId } },
@@ -216,7 +239,13 @@ const postCount = async (req, res) => {
       },
       {
         $group: {
-          _id: { $dateToString: { date: "$createdAt", format: "%Y.%m.%d", timezone: "+09:00" } },
+          _id: {
+            $dateToString: {
+              date: dateFilter,
+              format: "%Y.%m.%d",
+              timezone: "+09:00",
+            },
+          },
           postCount: { $sum: 1 },
         },
       },
@@ -225,10 +254,11 @@ const postCount = async (req, res) => {
     ]);
 
     if (postCountListByPeriod.length < periodLength) {
-      let index = 0;
+      let addedDate = 0;
+      let periodUnit = period === PERIOD.MONTHLY_WEEKLY ? 7 : 1;
 
-      while (index < periodLength) {
-        const targetDateString = getTargetDateString(cursorStartDate, index);
+      while (addedDate < periodLength) {
+        const targetDateString = getTargetDateString(cursorStartDate, addedDate * periodUnit);
         const hasTargetDate = postCountListByPeriod
           .map((item) => item.date)
           .some((date) => date === targetDateString);
@@ -240,7 +270,7 @@ const postCount = async (req, res) => {
           });
         }
 
-        index += 1;
+        addedDate += 1;
       }
     }
 
@@ -249,29 +279,19 @@ const postCount = async (req, res) => {
     const dates = postCountListByPeriod.map((item) => item.date);
     const postCountList = postCountListByPeriod.map((item) => item.postCount);
 
-    const addPeriod = period === PERIOD.WEEKLY ? DAY_OF_WEEK : MONTH;
-    const [previousStartDate, previousEndDate] = getCursorPeriod(cursorIdDate, period, -addPeriod);
-    const [nextStartDate, nextEndDate] = getCursorPeriod(cursorIdDate, period, +addPeriod);
+    const previousCursorId = getPreviousCursorIdDate(cursorStartDate, period);
+    const nextCursorId = getNextCursorIdDate(cursorEndDate);
 
-    const previousCursorId = new Date(previousStartDate);
-    previousCursorId.setDate(previousStartDate.getDate() - 1);
-    const nextCursorId = new Date(nextStartDate);
-    nextCursorId.setDate(nextStartDate.getDate() - 1);
-
-    const hasPreviousPosts =
+    const hasPrevious =
       (await postModel
         .find({ keywordId })
-        .find({
-          $and: [{ createdAt: { $lte: previousEndDate } }],
-        })
+        .find({ createdAt: { $lt: cursorStartDate } })
         .countDocuments()
         .exec()) > 0;
-    const hasNextPosts =
+    const hasNext =
       (await postModel
         .find({ keywordId })
-        .find({
-          $and: [{ createdAt: { $gte: nextStartDate } }],
-        })
+        .find({ createdAt: { $gt: cursorEndDate } })
         .countDocuments()
         .exec()) > 0;
 
@@ -283,8 +303,8 @@ const postCount = async (req, res) => {
       cursorId: cursorIdDate,
       previousCursorId,
       nextCursorId,
-      hasPrevious: hasPreviousPosts,
-      hasNext: hasNextPosts,
+      hasPrevious,
+      hasNext,
     });
   } catch {
     return res

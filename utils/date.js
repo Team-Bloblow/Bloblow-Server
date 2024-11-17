@@ -21,7 +21,35 @@ const getCursorIdDate = (period) => {
     cursorIdDate.setDate(cursorIdDate.getDate() - cursorIdDate.getDay() - 1);
   } else if (period === PERIOD.MONTHLY_DAILY) {
     cursorIdDate.setDate(1);
+  } else if (period === PERIOD.MONTHLY_WEEKLY) {
+    cursorIdDate.setDate(1);
+    cursorIdDate.setDate(-cursorIdDate.getDay());
   }
+
+  return cursorIdDate;
+};
+
+const getPreviousCursorIdDate = (date, period) => {
+  const cursorIdDate = new Date(date);
+
+  if (period === PERIOD.WEEKLY) {
+    cursorIdDate.setDate(cursorIdDate.getDate() - 8);
+  } else if (period === PERIOD.MONTHLY_DAILY) {
+    cursorIdDate.setMonth(cursorIdDate.getMonth() - 1);
+    cursorIdDate.setDate(0);
+  } else if (period === PERIOD.MONTHLY_WEEKLY) {
+    cursorIdDate.setDate(cursorIdDate.getDate() - 1);
+    cursorIdDate.setDate(1);
+    cursorIdDate.setDate(cursorIdDate.getDate() - cursorIdDate.getDay() - 1);
+  }
+
+  return cursorIdDate;
+};
+
+const getNextCursorIdDate = (date) => {
+  let cursorIdDate = new Date(date);
+  cursorIdDate.setHours(0, 0, 0, 0);
+  cursorIdDate = new Date(cursorIdDate);
 
   return cursorIdDate;
 };
@@ -41,7 +69,7 @@ const getCursorWeek = (cursorIdDate, addDay = 0) => {
 const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
   let startDate = new Date(cursorIdDate);
   let endDate = new Date(cursorIdDate);
-  let dateLength = 0;
+  let periodLength = 0;
 
   switch (period) {
     case PERIOD.WEEKLY:
@@ -53,7 +81,7 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
       endDate.setHours(23, 59, 59, 999);
       endDate = new Date(endDate);
 
-      dateLength = 7;
+      periodLength = 7;
 
       break;
 
@@ -68,12 +96,40 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
       endDate.setHours(23, 59, 59, 999);
       endDate = new Date(endDate);
 
-      dateLength = endDate.getDate() - startDate.getDate() + 1;
+      periodLength = endDate.getDate() - startDate.getDate() + 1;
+
+      break;
+
+    case PERIOD.MONTHLY_WEEKLY:
+      if (addPeriod !== 0) {
+        startDate.setDate(startDate.getDate() + (6 - startDate.getDay()));
+        startDate.setMonth(startDate.getMonth() + addPeriod);
+        startDate.setDate(1);
+        if (startDate.getDay() > 0) {
+          startDate.setDate(-startDate.getDay());
+        }
+      } else {
+        startDate.setDate(startDate.getDate() + 1);
+
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0);
+        if (endDate.getDay() < 6) {
+          endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
+        }
+      }
+
+      endDate.setHours(23, 59, 59, 999);
+      endDate = new Date(endDate);
+
+      periodLength = Math.round(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) / 7
+      );
 
       break;
   }
 
-  return [startDate, endDate, dateLength];
+  return [startDate, endDate, periodLength];
 };
 
 const getTargetDateString = (date, addDay = 0) => {
@@ -93,4 +149,12 @@ const getTargetDateString = (date, addDay = 0) => {
   return `${targetDate.getFullYear()}.${transformedTargetMonth}.${transformedTargetDate}`;
 };
 
-module.exports = { isToday, getCursorIdDate, getCursorWeek, getCursorPeriod, getTargetDateString };
+module.exports = {
+  isToday,
+  getCursorIdDate,
+  getPreviousCursorIdDate,
+  getNextCursorIdDate,
+  getCursorWeek,
+  getCursorPeriod,
+  getTargetDateString,
+};
