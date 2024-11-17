@@ -191,8 +191,6 @@ const postCount = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
-  const period = req.query.period ?? "weekly";
-  /*
   let period;
   if (isValidString(req.query.period)) {
     if (isEmptyString(req.query.period)) {
@@ -203,7 +201,6 @@ const postCount = async (req, res) => {
   } else {
     return res.status(400).send({ message: "[InvalidPeriod] Error occured" });
   }
-  */
 
   let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
@@ -326,8 +323,6 @@ const reactionCount = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
-  const period = req.query.period ?? "weekly";
-  /*
   let period;
   if (isValidString(req.query.period)) {
     if (isEmptyString(req.query.period)) {
@@ -338,7 +333,6 @@ const reactionCount = async (req, res) => {
   } else {
     return res.status(400).send({ message: "[InvalidPeriod] Error occured" });
   }
-  */
 
   let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
@@ -464,8 +458,6 @@ const adCount = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
-  const period = req.query.period ?? "weekly";
-  /*
   let period;
   if (isValidString(req.query.period)) {
     if (isEmptyString(req.query.period)) {
@@ -476,7 +468,6 @@ const adCount = async (req, res) => {
   } else {
     return res.status(400).send({ message: "[InvalidPeriod] Error occured" });
   }
-  */
 
   let cursorIdDate;
   if (isValidString(req.query.cursorId)) {
