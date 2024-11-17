@@ -15,4 +15,4 @@ const fetchHandler = async ({ url, method = "GET", params }) => {
   return await response.json();
 };
 
-export default fetchHandler;
+module.exports = { fetchHandler };
