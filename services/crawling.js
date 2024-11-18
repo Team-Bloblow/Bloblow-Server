@@ -33,8 +33,10 @@ const getPostCrawlingData = async (post) => {
       commentCount,
       isAd,
     };
-  } catch (err) {
-    console.error(err);
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'keywordController.create'" });
   }
 };
 
@@ -72,7 +74,7 @@ const getKeywordPostList = async (keyword, keywordId) => {
     });
 
     const data = await response.json();
-    if (!data?.items || data.items.length === 0) {
+    if (data?.items.length === 0 || isToday(data?.items[0]?.postdate) === false) {
       break;
     }
 
@@ -82,8 +84,8 @@ const getKeywordPostList = async (keyword, keywordId) => {
 
     const postList = Promise.allSettled
       ? await Promise.allSettled(
-          dataList.map(async (data) => {
-            return await getPostCrawlingData(data);
+          dataList.map((data) => {
+            return getPostCrawlingData(data);
           })
         )
       : await promiseAllSettled(dataList);
@@ -94,7 +96,7 @@ const getKeywordPostList = async (keyword, keywordId) => {
       }
     }
 
-    const postDateOfLastPost = data.items[data.items?.length - 1].postdate;
+    const postDateOfLastPost = data?.items[data.items?.length - 1].postdate;
     if (isToday(postDateOfLastPost)) {
       startIndex += POST_COUNT;
     } else {
