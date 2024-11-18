@@ -33,8 +33,10 @@ const getPostCrawlingData = async (post) => {
       commentCount,
       isAd,
     };
-  } catch (err) {
-    console.error(err);
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'keywordController.create'" });
   }
 };
 
