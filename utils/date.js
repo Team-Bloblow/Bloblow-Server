@@ -20,7 +20,7 @@ const getCursorIdDate = (period) => {
   if (period === PERIOD.WEEKLY) {
     cursorIdDate.setDate(cursorIdDate.getDate() - cursorIdDate.getDay() - 1);
   } else if (period === PERIOD.MONTHLY_DAILY) {
-    cursorIdDate.setDate(1);
+    cursorIdDate.setDate(0);
   } else if (period === PERIOD.MONTHLY_WEEKLY) {
     cursorIdDate.setDate(1);
     cursorIdDate.setDate(-cursorIdDate.getDay());
@@ -74,8 +74,6 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
   switch (period) {
     case PERIOD.WEEKLY:
       startDate.setDate(startDate.getDate() + 1 + addPeriod);
-      startDate.setHours(0, 0, 0, 0);
-      startDate = new Date(startDate);
 
       endDate.setDate(endDate.getDate() + 7 + addPeriod);
       endDate.setHours(23, 59, 59, 999);
@@ -86,12 +84,9 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
       break;
 
     case PERIOD.MONTHLY_DAILY:
-      startDate.setMonth(startDate.getMonth() + addPeriod);
-      startDate.setDate(1);
-      startDate.setHours(0, 0, 0, 0);
-      startDate = new Date(startDate);
+      startDate.setDate(startDate.getDate() + 1);
 
-      endDate.setMonth(endDate.getMonth() + addPeriod + 1);
+      endDate.setMonth(startDate.getMonth() + addPeriod + 1);
       endDate.setDate(0);
       endDate.setHours(23, 59, 59, 999);
       endDate = new Date(endDate);
