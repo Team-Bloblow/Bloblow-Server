@@ -80,13 +80,10 @@ const getKeywordPostList = async (keyword, keywordId) => {
       (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
     );
 
-    console.log(dataList);
-
     const postList = Promise.allSettled
       ? await Promise.allSettled(
           dataList.map(async (data) => {
-            const result = await getPostCrawlingData(data);
-            return result;
+            return await getPostCrawlingData(data);
           })
         )
       : await promiseAllSettled(dataList);
