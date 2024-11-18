@@ -21,6 +21,13 @@ const list = async (req, res) => {
 };
 
 const edit = async (req, res) => {
+  if (!isValidString(req.params.groupId) || isEmptyString(req.params.groupId)) {
+    return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+  }
+  if (!isValidString(req.params.groupNewName) || isEmptyString(req.params.groupNewName)) {
+    return res.status(400).send({ message: "[InvalidGroupNewName] Error occured" });
+  }
+
   try {
     const { groupId } = req.params;
     const { groupNewName } = req.body;
