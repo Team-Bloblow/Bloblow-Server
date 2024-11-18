@@ -391,7 +391,7 @@ const reactionCount = async (req, res) => {
       let addedDate = 0;
       let periodUnit = period === PERIOD.MONTHLY_WEEKLY ? 7 : 1;
 
-      while (addedDate < DAY_OF_WEEK) {
+      while (addedDate < periodLength) {
         const targetDateString = getTargetDateString(cursorStartDate, addedDate * periodUnit);
         const hasTargetDate = reactionCountListByPeriod
           .map((item) => item.date)
