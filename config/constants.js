@@ -1,4 +1,4 @@
-const POST_COUNT = 15;
+const POST_COUNT = 5;
 const NAVER_BLOG_HOST_NAME = "blog.naver.com";
 const DAY_OF_WEEK = 7;
 
