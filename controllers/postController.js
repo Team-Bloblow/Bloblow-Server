@@ -298,6 +298,7 @@ const postCount = async (req, res) => {
     return res.status(200).json({
       keywordId,
       keyword: keywordInfo.keyword,
+      period,
       dates,
       postCountList,
       cursorId: cursorIdDate,
@@ -433,6 +434,7 @@ const reactionCount = async (req, res) => {
     res.status(200).json({
       keywordId,
       keyword: keywordInfo.keyword,
+      period,
       dates,
       items: { likeCountList, commentCountList },
       cursorId: cursorIdDate,
