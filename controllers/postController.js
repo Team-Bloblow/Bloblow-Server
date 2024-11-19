@@ -80,20 +80,20 @@ const list = async (req, res) => {
   const excludedKeywordList = excludedKeyword.split(",").join("|");
   const limit = Number(req.query.limit);
   let hasNext = false;
-  let postListResult;
 
-  const getOrder = (reqOrder) => {
-    switch (reqOrder) {
+  const getSortQuery = (request) => {
+    switch (request) {
       case "NEWEST":
         return { _id: -1 };
 
       case "LIKE":
-        return { likeCount: -1 };
+        return { likeCount: -1, _id: -1 };
 
       case "COMMENT":
-        return { commentCount: -1 };
+        return { commentCount: -1, _id: -1 };
     }
   };
+
   const contentFilter = isEmptyString(excludedKeywordList)
     ? {
         $regex: includedKeywordList,
@@ -102,8 +102,9 @@ const list = async (req, res) => {
         $regex: includedKeywordList,
         $not: { $regex: excludedKeywordList },
       };
-  const getAdFilter = (reqIsAd) => {
-    switch (reqIsAd) {
+
+  const getAdFilter = (request) => {
+    switch (request) {
       case "":
         return { $or: [{ isAd: true }, { isAd: false }] };
 
@@ -115,43 +116,78 @@ const list = async (req, res) => {
     }
   };
 
+  const getOrderQuery = async (request, cursorId) => {
+    switch (request) {
+      case "LIKE":
+        const { likeCount: likeCountOfCursor } = await postModel.findById({ _id: cursorId }).exec();
+        return {
+          $or: [
+            { likeCount: { $lt: likeCountOfCursor } },
+            { likeCount: { $eq: likeCountOfCursor }, _id: { $lt: cursorId } },
+          ],
+        };
+      case "COMMENT":
+        const { commentCount: commentCountOfCursor } = await postModel
+          .findById({ _id: cursorId })
+          .exec();
+        return {
+          $or: [
+            { commentCount: { $lt: commentCountOfCursor } },
+            { commentCount: { $eq: commentCountOfCursor }, _id: { $lt: cursorId } },
+          ],
+        };
+    }
+  };
+
   try {
+    let postListResult;
+
     if (isEmptyString(cursorId)) {
       postListResult = await postModel.aggregate([
         { $match: { keywordId, content: contentFilter, ...getAdFilter(isAd) } },
-        { $sort: getOrder(order) },
+        { $sort: getSortQuery(order) },
         { $limit: limit },
       ]);
     } else {
+      const { _id: cursorObjectId } = await postModel.findById({ _id: cursorId }).exec();
+      const orderQuery = await getOrderQuery(order, cursorObjectId);
       postListResult = await postModel.aggregate([
         {
           $match: {
             keywordId,
             content: contentFilter,
             ...getAdFilter(isAd),
-            _id: { $lt: cursorId },
           },
         },
-        { $sort: getOrder(order) },
+        { $sort: getSortQuery(order) },
+        {
+          $match: order === "NEWEST" ? { _id: { $lt: cursorObjectId } } : orderQuery,
+        },
         { $limit: limit },
       ]);
     }
 
-    const nextCursorId = postListResult[postListResult.length - 1]?._id;
-    const nextPostResult = await postModel.aggregate([
-      {
-        $match: {
-          keywordId,
-          content: contentFilter,
-          ...getAdFilter(isAd),
-          _id: { $lt: nextCursorId },
+    let nextCursorId;
+    if (postListResult.length > 0) {
+      nextCursorId = postListResult[postListResult.length - 1]?._id;
+      const nextOrderQuery = await getOrderQuery(order, nextCursorId);
+      const nextPostResult = await postModel.aggregate([
+        {
+          $match: {
+            keywordId,
+            content: contentFilter,
+            ...getAdFilter(isAd),
+          },
         },
-      },
-      { $sort: getOrder(order) },
-    ]);
+        { $sort: getSortQuery(order) },
+        {
+          $match: order === "NEWEST" ? { _id: { $lt: nextCursorId } } : nextOrderQuery,
+        },
+      ]);
 
-    if (nextPostResult.length > 0) {
-      hasNext = true;
+      if (nextPostResult.length > 0) {
+        hasNext = true;
+      }
     }
 
     return res.status(200).json({
