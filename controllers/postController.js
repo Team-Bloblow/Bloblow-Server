@@ -51,11 +51,17 @@ const list = async (req, res) => {
   if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
     return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
   }
+  if (!isValidString(req.query.order) || isEmptyString(req.query.order)) {
+    return res.status(400).send({ message: "[InvalidOrder] Error occured" });
+  }
   if (!isValidString(req.query.includedKeyword)) {
     return res.status(400).send({ message: "[InvalidIncludedKeyword] Error occured" });
   }
   if (!isValidString(req.query.excludedKeyword)) {
     return res.status(400).send({ message: "[InvalidExcludedKeyword] Error occured" });
+  }
+  if (!isValidString(req.query.isAd)) {
+    return res.status(400).send({ message: "[InvalidIsAd] Error occured" });
   }
   if (!isValidNumber(Number(req.query.limit)) || Number(req.query.limit) <= 0) {
     return res.status(400).send({ message: "[InvalidLimit] Error occured" });
@@ -76,12 +82,25 @@ const list = async (req, res) => {
   }
 
   const keywordId = req.params.keywordId;
-  const { includedKeyword, excludedKeyword, cursorId } = req.query;
+  const { order, includedKeyword, excludedKeyword, cursorId, isAd } = req.query;
   const includedKeywordList = includedKeyword.split(",").join("|");
   const excludedKeywordList = excludedKeyword.split(",").join("|");
   const limit = Number(req.query.limit);
   let hasNext = false;
-  let postListResult;
+
+  const getSortQuery = (param) => {
+    switch (param) {
+      case "NEWEST":
+        return { _id: -1 };
+
+      case "LIKE":
+        return { likeCount: -1, _id: -1 };
+
+      case "COMMENT":
+        return { commentCount: -1, _id: -1 };
+    }
+  };
+
   const contentFilter = isEmptyString(excludedKeywordList)
     ? {
         $regex: includedKeywordList,
@@ -91,32 +110,91 @@ const list = async (req, res) => {
         $not: { $regex: excludedKeywordList },
       };
 
+  const getAdFilter = (param) => {
+    switch (param) {
+      case "":
+        return { $or: [{ isAd: true }, { isAd: false }] };
+
+      case "true":
+        return { isAd: true };
+
+      case "false":
+        return { isAd: false };
+    }
+  };
+
+  const getOrderQuery = async (param, cursorId) => {
+    switch (param) {
+      case "LIKE":
+        const { likeCount: likeCountOfCursor } = await postModel.findById({ _id: cursorId }).exec();
+        return {
+          $or: [
+            { likeCount: { $lt: likeCountOfCursor } },
+            { likeCount: { $eq: likeCountOfCursor }, _id: { $lt: cursorId } },
+          ],
+        };
+      case "COMMENT":
+        const { commentCount: commentCountOfCursor } = await postModel
+          .findById({ _id: cursorId })
+          .exec();
+        return {
+          $or: [
+            { commentCount: { $lt: commentCountOfCursor } },
+            { commentCount: { $eq: commentCountOfCursor }, _id: { $lt: cursorId } },
+          ],
+        };
+    }
+  };
+
   try {
+    let postListResult;
+
     if (isEmptyString(cursorId)) {
-      postListResult = await postModel
-        .find({ keywordId })
-        .find({ content: contentFilter })
-        .sort({ _id: -1 })
-        .limit(limit);
+      postListResult = await postModel.aggregate([
+        { $match: { keywordId, content: contentFilter, ...getAdFilter(isAd) } },
+        { $sort: getSortQuery(order) },
+        { $limit: limit },
+      ]);
     } else {
-      postListResult = await postModel
-        .find({ keywordId })
-        .find({ content: contentFilter })
-        .find({ _id: { $lt: cursorId } })
-        .sort({ _id: -1 })
-        .limit(limit);
+      const { _id: cursorObjectId } = await postModel.findById({ _id: cursorId }).exec();
+      const orderQuery = await getOrderQuery(order, cursorObjectId);
+      postListResult = await postModel.aggregate([
+        {
+          $match: {
+            keywordId,
+            content: contentFilter,
+            ...getAdFilter(isAd),
+          },
+        },
+        { $sort: getSortQuery(order) },
+        {
+          $match: order === "NEWEST" ? { _id: { $lt: cursorObjectId } } : orderQuery,
+        },
+        { $limit: limit },
+      ]);
     }
 
-    const nextCursorId = postListResult[postListResult.length - 1]?._id;
-    const nextPostResult = await postModel
-      .find({ keywordId })
-      .find({
-        content: contentFilter,
-      })
-      .findOne({ _id: { $lt: nextCursorId } });
+    let nextCursorId;
+    if (postListResult.length > 0) {
+      nextCursorId = postListResult[postListResult.length - 1]?._id;
+      const nextOrderQuery = await getOrderQuery(order, nextCursorId);
+      const nextPostResult = await postModel.aggregate([
+        {
+          $match: {
+            keywordId,
+            content: contentFilter,
+            ...getAdFilter(isAd),
+          },
+        },
+        { $sort: getSortQuery(order) },
+        {
+          $match: order === "NEWEST" ? { _id: { $lt: nextCursorId } } : nextOrderQuery,
+        },
+      ]);
 
-    if (nextPostResult !== null) {
-      hasNext = true;
+      if (nextPostResult.length > 0) {
+        hasNext = true;
+      }
     }
 
     return res.status(200).json({
