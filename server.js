@@ -22,10 +22,11 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
 const CLIENT_SERVER_URL = process.env.CLIENT_SERVER_URL;
+const CLIENT_DEV_URL = process.env.CLIENT_DEV_URL;
 
 app.use(
   cors({
-    origin: CLIENT_SERVER_URL,
+    origin: [CLIENT_SERVER_URL, CLIENT_DEV_URL],
     credentials: true,
   })
 );
