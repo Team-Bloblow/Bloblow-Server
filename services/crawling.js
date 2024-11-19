@@ -33,10 +33,8 @@ const getPostCrawlingData = async (post) => {
       commentCount,
       isAd,
     };
-  } catch {
-    return res
-      .status(500)
-      .send({ message: "[ServerError] Error occured in 'keywordController.create'" });
+  } catch (err) {
+    console.err(err);
   }
 };
 
@@ -79,9 +77,9 @@ const getKeywordPostList = async (keyword, keywordId) => {
         break;
       }
 
-    const dataList = data.items.filter(
-      (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
-    );
+      const dataList = data.items.filter(
+        (item) => item.link.includes(NAVER_BLOG_HOST_NAME) && isToday(item.postdate)
+      );
 
       const postList = Promise.allSettled
         ? await Promise.allSettled(dataList.map((data) => getPostCrawlingData(data)))
