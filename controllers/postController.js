@@ -81,8 +81,8 @@ const list = async (req, res) => {
   const limit = Number(req.query.limit);
   let hasNext = false;
 
-  const getSortQuery = (request) => {
-    switch (request) {
+  const getSortQuery = (param) => {
+    switch (param) {
       case "NEWEST":
         return { _id: -1 };
 
@@ -103,8 +103,8 @@ const list = async (req, res) => {
         $not: { $regex: excludedKeywordList },
       };
 
-  const getAdFilter = (request) => {
-    switch (request) {
+  const getAdFilter = (param) => {
+    switch (param) {
       case "":
         return { $or: [{ isAd: true }, { isAd: false }] };
 
@@ -116,8 +116,8 @@ const list = async (req, res) => {
     }
   };
 
-  const getOrderQuery = async (request, cursorId) => {
-    switch (request) {
+  const getOrderQuery = async (param, cursorId) => {
+    switch (param) {
       case "LIKE":
         const { likeCount: likeCountOfCursor } = await postModel.findById({ _id: cursorId }).exec();
         return {
