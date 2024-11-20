@@ -22,8 +22,8 @@ const edit = async (req, res) => {
   }
 
   try {
-    const { groupId } = req.params;
-    const { groupNewName } = req.body;
+    const groupId = req.params.groupId;
+    const groupNewName = req.body.groupNewName;
     const groupResult = await groupModel
       .findByIdAndUpdate({ _id: groupId }, { name: groupNewName }, { new: true })
       .exec();
