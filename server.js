@@ -7,6 +7,7 @@ const cors = require("cors");
 
 const indexRouter = require("./routes/indexRoute");
 const userRouter = require("./routes/userRoute");
+const groupRouter = require("./routes/groupRoute");
 const groupsRouter = require("./routes/groupsRoute");
 const keywordRouter = require("./routes/keywordRoute");
 const keywordsRouter = require("./routes/keywordsRoute");
@@ -38,6 +39,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/user", userRouter);
+app.use("/group", groupRouter);
 app.use("/groups", groupsRouter);
 app.use("/keyword", keywordRouter);
 app.use("/keywords", keywordsRouter);
