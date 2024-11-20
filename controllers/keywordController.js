@@ -1,5 +1,6 @@
 const keywordModel = require("../models/keywordModel");
 const groupModel = require("../models/groupModel");
+const postModel = require("../models/postModel");
 const { isValidString, isEmptyString } = require("../utils/validation");
 const { getKeywordPostList } = require("../services/crawling");
 
@@ -71,4 +72,28 @@ const create = async (req, res) => {
   }
 };
 
-module.exports = { create };
+const remove = async (req, res) => {
+  if (!isValidString(req.params.keywordId) || isEmptyString(req.params.keywordId)) {
+    return res.status(400).send({ message: "[InvalidKeywordId] Error occured" });
+  }
+
+  const keywordInfo = await keywordModel.findById(req.params.keywordId).exec();
+  if (keywordInfo === null) {
+    return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
+  }
+
+  const keywordId = req.params.keywordId;
+
+  try {
+    await postModel.deleteMany({ keywordId }).exec();
+    await keywordModel.deleteOne({ _id: keywordInfo._id }).exec();
+
+    return res.status(200).json({ status: "ok" });
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'keywordController.remove'" });
+  }
+};
+
+module.exports = { create, remove };
