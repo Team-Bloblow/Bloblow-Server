@@ -31,7 +31,7 @@ const edit = async (req, res) => {
   } catch {
     return res
       .status(500)
-      .send({ message: "[ServerError] Error occured in 'groupsController.edit'" });
+      .send({ message: "[ServerError] Error occured in 'groupController.edit'" });
   }
 };
 
