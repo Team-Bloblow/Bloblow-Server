@@ -83,9 +83,13 @@ const remove = async (req, res) => {
   }
 
   const keywordId = req.params.keywordId;
+  const { _id: groupId } = await groupModel.findOne({ keywordIdList: { $in: keywordId } }).exec();
 
   try {
     await postModel.deleteMany({ keywordId }).exec();
+    await groupModel
+      .updateOne({ _id: groupId }, { $pullAll: { keywordIdList: [keywordInfo._id] } })
+      .exec();
     await keywordModel.deleteOne({ _id: keywordInfo._id }).exec();
 
     return res.status(200).json({ status: "ok" });
