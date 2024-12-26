@@ -45,7 +45,11 @@ const create = async (req, res) => {
 
         for await (const sampleKeywordId of sampleGroup.keywordIdList) {
           const sampleKeyword = await keywordModel.findById(sampleKeywordId).exec();
-          const samplePostList = await postModel.find({ keywordId: sampleKeywordId }).exec();
+          const samplePostList = await postModel
+            .find({ keywordId: sampleKeywordId })
+            .sort({ createdAt: 1 })
+            .exec();
+
           const [newKeyword] = await keywordModel.create(
             [
               {
