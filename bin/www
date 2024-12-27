@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const app = require("../server");
 const debug = require("debug")("bloblow-server:server");
 const http = require("http");
