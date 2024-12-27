@@ -7,6 +7,7 @@ const PERIOD = Object.freeze({
   MONTHLY_DAILY: "monthlyDaily",
   MONTHLY_WEEKLY: "monthlyWeekly",
 });
+const SAMPLE_GROUP_ID = "676bacaa98cdcd850d3b9c78";
 
 module.exports = {
   POST_COUNT,
@@ -14,4 +15,5 @@ module.exports = {
   DAY_OF_WEEK,
   MONTH,
   PERIOD,
+  SAMPLE_GROUP_ID,
 };
