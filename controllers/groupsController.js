@@ -28,18 +28,21 @@ const summary = async (req, res) => {
   }
 
   try {
-    const postUpdateNewest = [];
     const { uid } = req.params;
+    const postUpdateNewest = [];
     const keywordListResult = await keywordModel.find({ ownerUid: uid }).exec();
     const keywordIdList = keywordListResult.map((keyword) => keyword._id);
     const postCreatedLast = [];
 
     for await (const id of keywordIdList) {
       const postResult = await postModel.find({ keywordId: id }).sort({ createdAt: -1 }).exec();
-      postCreatedLast.push({
-        keywordId: postResult[0].keywordId,
-        createdAt: postResult[0].createdAt,
-      });
+
+      if (postResult.length > 0) {
+        postCreatedLast.push({
+          keywordId: postResult[0].keywordId,
+          createdAt: postResult[0].createdAt,
+        });
+      }
     }
 
     const postCreatedNewest = postCreatedLast?.reduce((prev, curr) => {
@@ -48,6 +51,7 @@ const summary = async (req, res) => {
     const dateNewest = postCreatedNewest.createdAt.toString();
     const dateNewestStart = new Date(dateNewest).setHours(0, 0, 0, 0);
     const dateNewestEnd = new Date(dateNewest).setHours(23, 59, 59, 999);
+
     const groupListResult = await groupModel
       .find({ ownerUid: uid })
       .populate("keywordIdList", "keyword")
@@ -60,14 +64,20 @@ const summary = async (req, res) => {
     const keywordList = groupUpdatedNewest.keywordIdList;
 
     for await (const keyword of keywordList) {
-      const post = await postModel
+      const postResult = await postModel
         .find({
           keywordId: keyword._id,
           createdAt: { $gte: dateNewestStart, $lte: dateNewestEnd },
         })
         .exec();
 
-      postUpdateNewest.push({ name: keyword.keyword, count: post.length });
+      if (postResult.length > 0) {
+        postUpdateNewest.push({
+          id: keyword._id,
+          name: keyword.keyword,
+          postCount: postResult.length,
+        });
+      }
     }
 
     res.status(200).json({
