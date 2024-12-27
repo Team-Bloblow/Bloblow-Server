@@ -1,7 +1,10 @@
 const { PERIOD } = require("../config/constants");
 
 const isToday = (comparedDate) => {
-  const today = new Date();
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  const koreaTimeDiff = 9 * 60 * 60 * 1000;
+  const today = new Date(utc + koreaTimeDiff);
 
   const isSameYear = today.getFullYear().toString() === comparedDate.substring(0, 4);
   const isSameMonth = (today.getMonth() + 1).toString() === comparedDate.substring(4, 6);
