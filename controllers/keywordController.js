@@ -37,9 +37,7 @@ const create = async (req, res) => {
   const { groupId, ownerUid, keyword } = req.body;
 
   try {
-    const keywordResult = await keywordModel.create({ keyword, ownerUid });
-    const { _id: keywordIdCreated } = keywordResult;
-
+    const { _id: keywordIdCreated } = await keywordModel.create({ keyword, ownerUid });
     const groupResult = await groupModel.findByIdAndUpdate(
       { _id: groupId },
       { $push: { keywordIdList: keywordIdCreated } },
