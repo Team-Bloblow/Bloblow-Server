@@ -109,7 +109,7 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
       } else {
         startDate.setDate(startDate.getDate() + 1);
 
-        endDate.setDate(startDate.getDate() + 6);
+        endDate.setDate(endDate.getDate() + 7);
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0);
         if (endDate.getDay() < 6) {
