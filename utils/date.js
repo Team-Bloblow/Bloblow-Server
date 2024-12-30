@@ -69,16 +69,16 @@ const getCursorWeek = (cursorIdDate, addDay = 0) => {
   return [startDate, endDate];
 };
 
-const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
+const getCursorPeriod = (cursorIdDate, period) => {
   let startDate = new Date(cursorIdDate);
   let endDate = new Date(cursorIdDate);
   let periodLength = 0;
 
   switch (period) {
     case PERIOD.WEEKLY:
-      startDate.setDate(startDate.getDate() + 1 + addPeriod);
+      startDate.setDate(startDate.getDate() + 1);
 
-      endDate.setDate(endDate.getDate() + 7 + addPeriod);
+      endDate.setDate(endDate.getDate() + 7);
       endDate.setHours(23, 59, 59, 999);
       endDate = new Date(endDate);
 
@@ -89,7 +89,7 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
     case PERIOD.MONTHLY_DAILY:
       startDate.setDate(startDate.getDate() + 1);
 
-      endDate.setMonth(startDate.getMonth() + addPeriod + 1);
+      endDate.setMonth(startDate.getMonth() + 1);
       endDate.setDate(0);
       endDate.setHours(23, 59, 59, 999);
       endDate = new Date(endDate);
@@ -99,24 +99,14 @@ const getCursorPeriod = (cursorIdDate, period, addPeriod = 0) => {
       break;
 
     case PERIOD.MONTHLY_WEEKLY:
-      if (addPeriod !== 0) {
-        startDate.setDate(startDate.getDate() + (6 - startDate.getDay()));
-        startDate.setMonth(startDate.getMonth() + addPeriod);
-        startDate.setDate(1);
-        if (startDate.getDay() > 0) {
-          startDate.setDate(-startDate.getDay());
-        }
-      } else {
-        startDate.setDate(startDate.getDate() + 1);
+      startDate.setDate(startDate.getDate() + 1);
 
-        endDate.setDate(startDate.getDate() + 6);
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(0);
-        if (endDate.getDay() < 6) {
-          endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
-        }
+      endDate.setDate(endDate.getDate() + 7);
+      endDate.setMonth(endDate.getMonth() + 1);
+      endDate.setDate(0);
+      if (endDate.getDay() < 6) {
+        endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
       }
-
       endDate.setHours(23, 59, 59, 999);
       endDate = new Date(endDate);
 

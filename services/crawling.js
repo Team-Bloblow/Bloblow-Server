@@ -1,8 +1,9 @@
-const { isToday } = require("../utils/date");
 const { POST_COUNT, NAVER_BLOG_HOST_NAME } = require("../config/constants");
 const postController = require("../controllers/postController");
-const { sanitizeHtmlEntity } = require("../utils/sanitizeHtmlEntity");
+const keywordModel = require("../models/keywordModel");
+const { isToday } = require("../utils/date");
 const { fetchHandler } = require("../utils/fetchHandler");
+const { sanitizeHtmlEntity } = require("../utils/sanitizeHtmlEntity");
 
 require("dotenv").config();
 
@@ -90,6 +91,10 @@ const getKeywordPostList = async (keyword, keywordId) => {
           postController.upsert({ keywordId, ...post.value });
         }
       }
+
+      await keywordModel
+        .findByIdAndUpdate(keywordId, { updatedAt: new Date() }, { timestamps: false })
+        .exec();
 
       const postDateOfLastPost = data.items[data.items?.length - 1]?.postdate;
       if (!isToday(postDateOfLastPost)) {
