@@ -6,9 +6,11 @@ const list = async (req, res) => {
     return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
   }
 
+  const groupId = req.params.groupId;
+
   try {
     const groupResult = await groupModel
-      .findById(req.params.groupId)
+      .findById(groupId)
       .populate("keywordIdList", "keyword")
       .sort({ updatedAt: -1 });
     return res.status(200).json(groupResult);
