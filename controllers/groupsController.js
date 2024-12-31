@@ -29,61 +29,71 @@ const summary = async (req, res) => {
 
   try {
     const { uid } = req.params;
-    const postUpdateNewest = [];
-    const keywordListResult = await keywordModel.find({ ownerUid: uid }).exec();
-    const keywordIdList = keywordListResult.map((keyword) => keyword._id);
-    const postCreatedLast = [];
 
-    for await (const id of keywordIdList) {
-      const postResult = await postModel.find({ keywordId: id }).sort({ createdAt: -1 }).exec();
+    const keywordResult = await keywordModel.find({ ownerUid: uid }).sort({ updatedAt: -1 }).exec();
+    const keywordList = keywordResult.map((keyword) => {
+      return {
+        id: keyword._id.toString(),
+        name: keyword.keyword,
+      };
+    });
 
-      if (postResult.length > 0) {
-        postCreatedLast.push({
-          keywordId: postResult[0].keywordId,
-          createdAt: postResult[0].createdAt,
-        });
+    const keywordIdList = keywordResult.map((keyword) => keyword._id.toString());
+    let keywordIdNewestHavingPost;
+
+    for await (const keywordId of keywordIdList) {
+      const hasPost = (await postModel.find({ keywordId }).countDocuments().exec()) > 0;
+
+      if (hasPost) {
+        keywordIdNewestHavingPost = keywordId;
+        break;
       }
     }
+    const keywordUpdatedNewestHavingPost = keywordResult.filter(
+      (keyword) => keywordIdNewestHavingPost === keyword._id.toString()
+    )[0];
 
-    const postCreatedNewest = postCreatedLast?.reduce((prev, curr) => {
-      return new Date(prev.createdAt) <= new Date(curr.createdAt) ? curr : prev;
-    });
-    const dateNewest = postCreatedNewest.createdAt.toString();
+    const lastUpdatedAt = keywordUpdatedNewestHavingPost.updatedAt;
+    const dateNewest = lastUpdatedAt.toString();
     const dateNewestStart = new Date(dateNewest).setHours(0, 0, 0, 0);
     const dateNewestEnd = new Date(dateNewest).setHours(23, 59, 59, 999);
 
-    const groupListResult = await groupModel
-      .find({ ownerUid: uid })
-      .populate("keywordIdList", "keyword")
-      .exec();
-    const groupUpdatedNewest = groupListResult.filter((group) => {
-      return group.keywordIdList.some(
-        (keyword) => keyword._id.toString() === postCreatedNewest.keywordId.toString()
-      );
-    })[0];
-    const keywordList = groupUpdatedNewest.keywordIdList;
+    const groupUpdatedNewest = (
+      await groupModel.find({ keywordIdList: { _id: keywordUpdatedNewestHavingPost._id } })
+    )[0];
 
-    for await (const keyword of keywordList) {
-      const postResult = await postModel
-        .find({
-          keywordId: keyword._id,
-          createdAt: { $gte: dateNewestStart, $lte: dateNewestEnd },
-        })
-        .exec();
+    const keywordListOfNewestGroup = groupUpdatedNewest.keywordIdList.map((keyword) =>
+      keyword.toString()
+    );
 
-      if (postResult.length > 0) {
-        postUpdateNewest.push({
-          id: keyword._id,
-          name: keyword.keyword,
-          postCount: postResult.length,
-        });
-      }
-    }
+    const postCountByKeyword = await postModel.aggregate([
+      {
+        $match: {
+          updatedAt: { $gte: new Date(dateNewestStart), $lte: new Date(dateNewestEnd) },
+          keywordId: { $in: keywordListOfNewestGroup },
+        },
+      },
+      {
+        $group: {
+          _id: "$keywordId",
+          postCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const postUpdateNewest = [...postCountByKeyword];
+    postUpdateNewest.forEach((update) => {
+      return keywordList.forEach((keyword) => {
+        if (update._id === keyword.id) {
+          return (update.name = keyword.name);
+        }
+      });
+    });
 
     res.status(200).json({
       group: groupUpdatedNewest.name,
       postUpdateNewest,
-      lastUpdatedAt: postCreatedNewest.createdAt,
+      lastUpdatedAt,
     });
   } catch {
     return res
