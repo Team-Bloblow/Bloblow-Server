@@ -28,62 +28,82 @@ const summary = async (req, res) => {
   }
 
   try {
-    const { uid } = req.params;
-    const postUpdateNewest = [];
-    const keywordListResult = await keywordModel.find({ ownerUid: uid }).exec();
-    const keywordIdList = keywordListResult.map((keyword) => keyword._id);
-    const postCreatedLast = [];
+    const uid = req.params.uid;
 
-    for await (const id of keywordIdList) {
-      const postResult = await postModel.find({ keywordId: id }).sort({ createdAt: -1 }).exec();
+    let lastUpdatedGroup = { name: null };
+    let lastUpdatedPost = [];
+    let lastUpdatedAt = null;
 
-      if (postResult.length > 0) {
-        postCreatedLast.push({
-          keywordId: postResult[0].keywordId,
-          createdAt: postResult[0].createdAt,
-        });
-      }
-    }
-
-    const postCreatedNewest = postCreatedLast?.reduce((prev, curr) => {
-      return new Date(prev.createdAt) <= new Date(curr.createdAt) ? curr : prev;
-    });
-    const dateNewest = postCreatedNewest.createdAt.toString();
-    const dateNewestStart = new Date(dateNewest).setHours(0, 0, 0, 0);
-    const dateNewestEnd = new Date(dateNewest).setHours(23, 59, 59, 999);
-
-    const groupListResult = await groupModel
-      .find({ ownerUid: uid })
-      .populate("keywordIdList", "keyword")
+    const userKeywordList = await keywordModel
+      .find({ ownerUid: uid }, { keyword: 1, updatedAt: 1 })
+      .sort({ updatedAt: -1 })
       .exec();
-    const groupUpdatedNewest = groupListResult.filter((group) => {
-      return group.keywordIdList.some(
-        (keyword) => keyword._id.toString() === postCreatedNewest.keywordId.toString()
+
+    if (userKeywordList.length > 0) {
+      for await (const keyword of userKeywordList) {
+        const hasPost =
+          (await postModel.find({ keywordId: keyword._id.toString() }).countDocuments().exec()) > 0;
+
+        if (hasPost) {
+          lastUpdatedkeyword = keyword;
+          break;
+        }
+      }
+
+      lastUpdatedAt = lastUpdatedkeyword.updatedAt;
+
+      const lastUpdatedAtStart = new Date(lastUpdatedAt).setHours(0, 0, 0, 0);
+      const lastUpdatedAtEnd = new Date(lastUpdatedAt).setHours(23, 59, 59, 999);
+
+      lastUpdatedGroup = await groupModel.findOne({
+        keywordIdList: lastUpdatedkeyword._id,
+      });
+      const lastUpdatedGroupKeywordList = lastUpdatedGroup.keywordIdList.map((keyword) =>
+        keyword.toString()
       );
-    })[0];
-    const keywordList = groupUpdatedNewest.keywordIdList;
 
-    for await (const keyword of keywordList) {
-      const postResult = await postModel
-        .find({
-          keywordId: keyword._id,
-          createdAt: { $gte: dateNewestStart, $lte: dateNewestEnd },
-        })
-        .exec();
+      const postCountByKeyword = await postModel.aggregate([
+        {
+          $match: {
+            updatedAt: { $gte: new Date(lastUpdatedAtStart), $lte: new Date(lastUpdatedAtEnd) },
+            keywordId: { $in: lastUpdatedGroupKeywordList },
+          },
+        },
+        {
+          $group: {
+            _id: "$keywordId",
+            postCount: { $sum: 1 },
+          },
+        },
+      ]);
 
-      if (postResult.length > 0) {
-        postUpdateNewest.push({
-          id: keyword._id,
-          name: keyword.keyword,
-          postCount: postResult.length,
+      const keywordIdListResult = postCountByKeyword.map((result) => result._id);
+
+      if (lastUpdatedGroupKeywordList.length !== keywordIdListResult.length) {
+        lastUpdatedGroupKeywordList.forEach((el) => {
+          if (!keywordIdListResult.includes(el)) {
+            postCountByKeyword.push({
+              _id: el,
+              postCount: 0,
+            });
+          }
         });
       }
+
+      lastUpdatedPost = [...postCountByKeyword];
+      lastUpdatedPost.forEach((update) => {
+        userKeywordList.forEach((keyword) => {
+          if (update._id === keyword.id.toString()) {
+            update.name = keyword.keyword;
+          }
+        });
+      });
     }
 
     res.status(200).json({
-      group: groupUpdatedNewest.name,
-      postUpdateNewest,
-      lastUpdatedAt: postCreatedNewest.createdAt,
+      group: lastUpdatedGroup.name,
+      postUpdateNewest: lastUpdatedPost,
+      lastUpdatedAt,
     });
   } catch {
     return res
