@@ -31,7 +31,7 @@ const summary = async (req, res) => {
     const uid = req.params.uid;
 
     let lastUpdatedGroup = { name: null };
-    let postUpdateNewest = [];
+    let lastUpdatedPost = [];
     let lastUpdatedAt = null;
 
     const userKeywordList = await keywordModel
@@ -90,8 +90,8 @@ const summary = async (req, res) => {
         });
       }
 
-      postUpdateNewest = [...postCountByKeyword];
-      postUpdateNewest.forEach((update) => {
+      lastUpdatedPost = [...postCountByKeyword];
+      lastUpdatedPost.forEach((update) => {
         userKeywordList.forEach((keyword) => {
           if (update._id === keyword.id.toString()) {
             update.name = keyword.keyword;
@@ -102,7 +102,7 @@ const summary = async (req, res) => {
 
     res.status(200).json({
       group: lastUpdatedGroup.name,
-      postUpdateNewest,
+      postUpdateNewest: lastUpdatedPost,
       lastUpdatedAt,
     });
   } catch {
