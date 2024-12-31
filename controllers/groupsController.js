@@ -28,41 +28,32 @@ const summary = async (req, res) => {
   }
 
   try {
-    const { uid } = req.params;
+    const uid = req.params.uid;
 
-    const keywordResult = await keywordModel.find({ ownerUid: uid }).sort({ updatedAt: -1 }).exec();
-    const keywordList = keywordResult.map((keyword) => {
-      return {
-        id: keyword._id.toString(),
-        name: keyword.keyword,
-      };
-    });
+    const userKeywordList = await keywordModel
+      .find({ ownerUid: uid }, { keyword: 1, updatedAt: 1 })
+      .sort({ updatedAt: -1 })
+      .exec();
 
-    const keywordIdList = keywordResult.map((keyword) => keyword._id.toString());
-    let keywordIdNewestHavingPost;
-
-    for await (const keywordId of keywordIdList) {
-      const hasPost = (await postModel.find({ keywordId }).countDocuments().exec()) > 0;
+    let lastUpdatedkeyword;
+    for await (const keyword of userKeywordList) {
+      const hasPost =
+        (await postModel.find({ keywordId: keyword._id.toString() }).countDocuments().exec()) > 0;
 
       if (hasPost) {
-        keywordIdNewestHavingPost = keywordId;
+        lastUpdatedkeyword = keyword;
         break;
       }
     }
-    const keywordUpdatedNewestHavingPost = keywordResult.filter(
-      (keyword) => keywordIdNewestHavingPost === keyword._id.toString()
-    )[0];
 
-    const lastUpdatedAt = keywordUpdatedNewestHavingPost.updatedAt;
-    const dateNewest = lastUpdatedAt.toString();
+    const dateNewest = lastUpdatedkeyword.updatedAt.toString();
     const dateNewestStart = new Date(dateNewest).setHours(0, 0, 0, 0);
     const dateNewestEnd = new Date(dateNewest).setHours(23, 59, 59, 999);
 
-    const groupUpdatedNewest = (
-      await groupModel.find({ keywordIdList: { _id: keywordUpdatedNewestHavingPost._id } })
-    )[0];
-
-    const keywordListOfNewestGroup = groupUpdatedNewest.keywordIdList.map((keyword) =>
+    const lastUpdatedGroup = await groupModel.findOne({
+      keywordIdList: { _id: lastUpdatedkeyword._id },
+    });
+    const lastUpdatedGroupKeywordList = lastUpdatedGroup.keywordIdList.map((keyword) =>
       keyword.toString()
     );
 
@@ -70,7 +61,7 @@ const summary = async (req, res) => {
       {
         $match: {
           updatedAt: { $gte: new Date(dateNewestStart), $lte: new Date(dateNewestEnd) },
-          keywordId: { $in: keywordListOfNewestGroup },
+          keywordId: { $in: lastUpdatedGroupKeywordList },
         },
       },
       {
@@ -83,17 +74,17 @@ const summary = async (req, res) => {
 
     const postUpdateNewest = [...postCountByKeyword];
     postUpdateNewest.forEach((update) => {
-      return keywordList.forEach((keyword) => {
-        if (update._id === keyword.id) {
-          return (update.name = keyword.name);
+      userKeywordList.forEach((keyword) => {
+        if (update._id === keyword.id.toString()) {
+          update.name = keyword.keyword;
         }
       });
     });
 
     res.status(200).json({
-      group: groupUpdatedNewest.name,
+      group: lastUpdatedGroup.name,
       postUpdateNewest,
-      lastUpdatedAt,
+      lastUpdatedAt: lastUpdatedkeyword.updatedAt,
     });
   } catch {
     return res
