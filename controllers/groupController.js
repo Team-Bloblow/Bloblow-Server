@@ -1,6 +1,26 @@
 const groupModel = require("../models/groupModel");
 const { isValidString, isEmptyString } = require("../utils/validation");
 
+const list = async (req, res) => {
+  if (!isValidString(req.params.groupId) || isEmptyString(req.params.groupId)) {
+    return res.status(400).send({ message: "[InvalidGroupId] Error occured" });
+  }
+
+  const groupId = req.params.groupId;
+
+  try {
+    const groupResult = await groupModel
+      .findById(groupId)
+      .populate("keywordIdList", "keyword")
+      .sort({ updatedAt: -1 });
+    return res.status(200).json(groupResult);
+  } catch {
+    return res
+      .status(500)
+      .send({ message: "[ServerError] Error occured in 'groupController.list'" });
+  }
+};
+
 const create = async (req, res) => {
   if (!isValidString(req.body.groupName) || isEmptyString(req.body.groupName)) {
     return res.status(400).send({ message: "[InvalidGroupName] Error occured" });
@@ -65,4 +85,4 @@ const edit = async (req, res) => {
   }
 };
 
-module.exports = { create, edit };
+module.exports = { list, create, edit };
