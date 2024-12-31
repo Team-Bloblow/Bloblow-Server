@@ -31,8 +31,8 @@ const summary = async (req, res) => {
     const uid = req.params.uid;
 
     let lastUpdatedGroup = { name: null };
-    let lastUpdatedkeyword = { updatedAt: null };
     let postUpdateNewest = [];
+    let lastUpdatedAt = null;
 
     const userKeywordList = await keywordModel
       .find({ ownerUid: uid }, { keyword: 1, updatedAt: 1 })
@@ -50,7 +50,8 @@ const summary = async (req, res) => {
         }
       }
 
-      const lastUpdatedAt = lastUpdatedkeyword.updatedAt.toString();
+      lastUpdatedAt = lastUpdatedkeyword.updatedAt;
+
       const lastUpdatedAtStart = new Date(lastUpdatedAt).setHours(0, 0, 0, 0);
       const lastUpdatedAtEnd = new Date(lastUpdatedAt).setHours(23, 59, 59, 999);
 
@@ -102,7 +103,7 @@ const summary = async (req, res) => {
     res.status(200).json({
       group: lastUpdatedGroup.name,
       postUpdateNewest,
-      lastUpdatedAt: lastUpdatedkeyword.updatedAt,
+      lastUpdatedAt,
     });
   } catch {
     return res
