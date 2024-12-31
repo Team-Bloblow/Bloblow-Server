@@ -7,7 +7,10 @@ const list = async (req, res) => {
   }
 
   try {
-    const groupResult = await groupModel.findById(req.params.groupId);
+    const groupResult = await groupModel
+      .findById(req.params.groupId)
+      .populate("keywordIdList", "keyword")
+      .sort({ updatedAt: -1 });
     return res.status(200).json(groupResult);
   } catch {
     return res
