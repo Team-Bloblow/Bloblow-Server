@@ -1,6 +1,5 @@
 const { isValidString, isEmptyString } = require("../utils/validation");
 const keywordModel = require("../models/keywordModel");
-const postModel = require("../models/postModel");
 const { getKeywordPostList } = require("../services/crawling");
 
 const list = async (req, res) => {
@@ -12,10 +11,7 @@ const list = async (req, res) => {
     const { keywordId } = req.params;
     const keywordResult = await keywordModel.findById(keywordId).exec();
 
-    const postList = await postModel.find({ keywordId }).exec();
-    const postIdList = postList.length === 0 ? [] : postList.map((data) => data._id);
-
-    res.status(200).json({ ...keywordResult.toObject(), postId: postIdList });
+    res.status(200).json({ ...keywordResult.toObject() });
   } catch {
     return res
       .status(500)
