@@ -29,10 +29,25 @@ const update = async (req, res) => {
     return res.status(400).send({ message: "[NotExistedKeywordId] Error occured" });
   }
 
+  if (keywordInfo.lastCrawledAt !== undefined) {
+    const now = new Date();
+    const TIME_LIMIT = 60 * 60 * 1000;
+    const isCrawlingAllowed = now - keywordInfo.lastCrawledAt > TIME_LIMIT;
+
+    if (!isCrawlingAllowed) {
+      return res.status(400).send({ message: "[DuplicatedCrawlingRequest] Error occured" });
+    }
+  }
+
   const keywordId = req.params.keywordId;
 
   try {
     await getKeywordPostList(keywordInfo.keyword, keywordId);
+    await keywordModel.updateOne(
+      { _id: keywordId },
+      { $set: { lastCrawledAt: new Date() } },
+      { timestamps: false }
+    );
     return res.status(200).json({ status: "ok" });
   } catch {
     return res
