@@ -17,6 +17,9 @@ const keywordSchema = new Schema(
     excludedKeyword: {
       type: String,
     },
+    lastCrawledAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
